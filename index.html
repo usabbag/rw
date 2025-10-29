@@ -19,8 +19,14 @@
             <button id="locationBtn" title="Use current location">📍</button>
         </div>
         
+        <div id="cityDisambiguation" class="city-disambiguation hidden">
+            <h3>Multiple cities found. Please select one:</h3>
+            <div id="cityChoices"></div>
+        </div>
+
         <div id="weatherDisplay" class="weather-display hidden">
             <h2 id="cityName"></h2>
+            <div id="dataSourceNotice" class="data-source-notice hidden"></div>
             <div class="weather-comparison">
                 <div class="weather-card today">
                     <h3>Today</h3>

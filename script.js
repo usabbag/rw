@@ -1,7 +1,80 @@
-// Configuration - You'll need to get your own API key from https://openweathermap.org/api
-const API_KEY = '079ed8a9197177ff8767b72017a9ac1f'; // Replace with your actual API key
-const ONECALL_URL = 'https://api.openweathermap.org/data/3.0/onecall'; // One Call API 3.0
-const GEOCODING_URL = 'https://api.openweathermap.org/geo/1.0/direct'; // Geocoding API (recommended for One Call API 3.0)
+// Configuration - Open-Meteo API (Free for non-commercial use, no API key needed!)
+// Documentation: https://open-meteo.com/en/docs
+const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const HISTORICAL_URL = 'https://archive-api.open-meteo.com/v1/archive';
+
+// WMO Weather interpretation codes (WW)
+// https://open-meteo.com/en/docs
+const WMO_WEATHER_CODES = {
+    0: 'clear sky',
+    1: 'mainly clear',
+    2: 'partly cloudy',
+    3: 'overcast',
+    45: 'fog',
+    48: 'depositing rime fog',
+    51: 'light drizzle',
+    53: 'moderate drizzle',
+    55: 'dense drizzle',
+    56: 'light freezing drizzle',
+    57: 'dense freezing drizzle',
+    61: 'slight rain',
+    63: 'moderate rain',
+    65: 'heavy rain',
+    66: 'light freezing rain',
+    67: 'heavy freezing rain',
+    71: 'slight snow fall',
+    73: 'moderate snow fall',
+    75: 'heavy snow fall',
+    77: 'snow grains',
+    80: 'slight rain showers',
+    81: 'moderate rain showers',
+    82: 'violent rain showers',
+    85: 'slight snow showers',
+    86: 'heavy snow showers',
+    95: 'thunderstorm',
+    96: 'thunderstorm with slight hail',
+    99: 'thunderstorm with heavy hail'
+};
+
+function getWeatherDescription(wmoCode) {
+    return WMO_WEATHER_CODES[wmoCode] || 'unknown';
+}
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+
+// Retry helper function with exponential backoff
+async function fetchWithRetry(url, options = {}, retries = MAX_RETRIES) {
+    try {
+        const response = await fetch(url, options);
+
+        // Don't retry on client errors (4xx) except 429 (rate limit)
+        if (!response.ok && response.status >= 400 && response.status < 500 && response.status !== 429) {
+            return response;
+        }
+
+        // Retry on server errors (5xx) or rate limit (429)
+        if (!response.ok && retries > 0) {
+            const delay = INITIAL_RETRY_DELAY * Math.pow(2, MAX_RETRIES - retries);
+            console.log(`Request failed (${response.status}), retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+
+        return response;
+    } catch (error) {
+        // Network errors - retry if we have retries left
+        if (retries > 0) {
+            const delay = INITIAL_RETRY_DELAY * Math.pow(2, MAX_RETRIES - retries);
+            console.log(`Network error, retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, options, retries - 1);
+        }
+        throw error;
+    }
+}
 
 // DOM elements
 const cityInput = document.getElementById('cityInput');
@@ -11,22 +84,23 @@ const weatherDisplay = document.getElementById('weatherDisplay');
 const errorMessage = document.getElementById('errorMessage');
 const recentSearches = document.getElementById('recentSearches');
 const recentList = document.getElementById('recentList');
+const cityDisambiguation = document.getElementById('cityDisambiguation');
+const cityChoices = document.getElementById('cityChoices');
+const dataSourceNotice = document.getElementById('dataSourceNotice');
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     loadRecentSearches();
-    
+
     // Event listeners
     searchBtn.addEventListener('click', handleSearch);
     locationBtn.addEventListener('click', handleLocationSearch);
     cityInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSearch();
     });
-    
-    // Check if we have a valid API key
-    if (API_KEY === 'YOUR_API_KEY_HERE') {
-        showError('Please add your OpenWeatherMap API key to script.js');
-    }
+
+    // No API key needed! Open-Meteo is free for non-commercial use
+    console.log('Weather app ready! Using Open-Meteo API (free, no key required)');
 });
 
 // Main search handler
@@ -64,15 +138,21 @@ function handleLocationSearch() {
 async function performWeatherSearch(city) {
     showLoading();
     hideError();
-    
+
     try {
         const currentWeather = await getCurrentWeather(city);
+
+        // If getCurrentWeather returns null, it means disambiguation UI was shown
+        if (!currentWeather) {
+            return;
+        }
+
         const yesterdayWeather = await getYesterdayWeather(city, currentWeather.coordinates);
-        
+
         displayWeatherComparison(currentWeather, yesterdayWeather);
         saveRecentSearch(city);
         storeWeatherData(city, currentWeather);
-        
+
     } catch (error) {
         showError(error.message);
     } finally {
@@ -80,45 +160,44 @@ async function performWeatherSearch(city) {
     }
 }
 
-// Fetch weather by coordinates
+// Fetch weather by coordinates using Open-Meteo
 async function fetchWeatherByCoords(lat, lon) {
     try {
-        const response = await fetch(
-            `${ONECALL_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&exclude=minutely,hourly,daily,alerts`
+        const response = await fetchWithRetry(
+            `${FORECAST_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`
         );
-        
+
         if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Invalid API key or subscription. Please check your OpenWeatherMap API key and subscription.');
-            } else {
-                throw new Error('Unable to get weather for your location');
-            }
+            throw new Error('Unable to get weather for your location');
         }
-        
+
         const data = await response.json();
-        
-        // Transform One Call API response to match expected format
+
+        // Transform Open-Meteo response to match expected format
         const currentWeather = {
-            name: `${data.timezone}`, // Using timezone as location name
+            name: data.timezone, // Using timezone as location name
             main: {
-                temp: data.current.temp
+                temp: data.current.temperature_2m
             },
-            weather: data.current.weather,
-            dt: data.current.dt,
+            weather: [{
+                description: getWeatherDescription(data.current.weather_code)
+            }],
+            dt: new Date(data.current.time).getTime() / 1000,
             coord: {
                 lat: lat,
                 lon: lon
-            }
+            },
+            timezone: data.timezone
         };
-        
+
         const city = currentWeather.name;
-        const yesterdayWeather = await getYesterdayWeather(city, {lat: lat, lon: lon});
-        
+        const yesterdayWeather = await getYesterdayWeather(city, {lat: lat, lon: lon, timezone: data.timezone});
+
         displayWeatherComparison(currentWeather, yesterdayWeather);
         saveRecentSearch(city);
         storeWeatherData(city, currentWeather);
         cityInput.value = city;
-        
+
     } catch (error) {
         showError(error.message);
     } finally {
@@ -126,133 +205,291 @@ async function fetchWeatherByCoords(lat, lon) {
     }
 }
 
-// Get coordinates from city name using Geocoding API (recommended for One Call API 3.0)
-async function getCityCoordinates(city) {
-    const response = await fetch(
-        `${GEOCODING_URL}?q=${city}&limit=1&appid=${API_KEY}`
+// Get coordinates from city name using Open-Meteo Geocoding API
+async function getCityCoordinates(city, allowMultiple = true) {
+    const response = await fetchWithRetry(
+        `${GEOCODING_URL}?name=${encodeURIComponent(city)}&count=5&language=en&format=json`
     );
-    
+
     if (!response.ok) {
-        if (response.status === 401) {
-            throw new Error('Invalid API key. Please check your OpenWeatherMap API key.');
-        } else {
-            throw new Error('Unable to fetch city coordinates. Please try again.');
-        }
+        throw new Error('Unable to fetch city coordinates. Please try again.');
     }
-    
+
     const data = await response.json();
-    
-    if (!data || data.length === 0) {
+
+    if (!data.results || data.results.length === 0) {
         throw new Error('City not found. Please check the spelling.');
     }
-    
-    const location = data[0];
-    
+
+    // If multiple cities found and disambiguation is allowed, return all
+    if (allowMultiple && data.results.length > 1) {
+        return data.results.map(location => ({
+            lat: location.latitude,
+            lon: location.longitude,
+            name: location.name,
+            country: location.country,
+            country_code: location.country_code,
+            state: location.admin1,
+            timezone: location.timezone
+        }));
+    }
+
+    // Return single result
+    const location = data.results[0];
     return {
-        lat: location.lat,
-        lon: location.lon,
+        lat: location.latitude,
+        lon: location.longitude,
         name: location.name,
-        country: location.country
+        country: location.country,
+        country_code: location.country_code,
+        state: location.admin1,
+        timezone: location.timezone
     };
 }
 
-// Get current weather data using One Call API 3.0
-async function getCurrentWeather(city) {
-    // First get coordinates for the city
-    const coordinates = await getCityCoordinates(city);
-    
-    // Then get weather data using One Call API
-    const response = await fetch(
-        `${ONECALL_URL}?lat=${coordinates.lat}&lon=${coordinates.lon}&appid=${API_KEY}&units=metric&exclude=minutely,hourly,daily,alerts`
-    );
-    
-    if (!response.ok) {
-        if (response.status === 401) {
-            throw new Error('Invalid API key or subscription. Please check your OpenWeatherMap API key and subscription.');
-        } else {
+// Show city disambiguation UI
+function showCityDisambiguation(cities, originalQuery) {
+    hideError();
+    weatherDisplay.classList.add('hidden');
+    cityDisambiguation.classList.remove('hidden');
+
+    cityChoices.innerHTML = '';
+
+    cities.forEach(city => {
+        const choiceDiv = document.createElement('div');
+        choiceDiv.className = 'city-choice';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'city-choice-name';
+        nameDiv.textContent = city.name;
+
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'city-choice-details';
+        const locationParts = [city.state, city.country].filter(Boolean);
+        detailsDiv.textContent = locationParts.join(', ');
+
+        choiceDiv.appendChild(nameDiv);
+        choiceDiv.appendChild(detailsDiv);
+
+        choiceDiv.addEventListener('click', async () => {
+            cityDisambiguation.classList.add('hidden');
+            await fetchWeatherForCoordinates(city, originalQuery);
+        });
+
+        cityChoices.appendChild(choiceDiv);
+    });
+}
+
+// Fetch weather for specific coordinates using Open-Meteo
+async function fetchWeatherForCoordinates(coordinates, cityName) {
+    showLoading();
+    hideError();
+
+    try {
+        const response = await fetchWithRetry(
+            `${FORECAST_URL}?latitude=${coordinates.lat}&longitude=${coordinates.lon}&current=temperature_2m,weather_code&timezone=${encodeURIComponent(coordinates.timezone || 'auto')}`
+        );
+
+        if (!response.ok) {
             throw new Error('Unable to fetch weather data. Please try again.');
         }
+
+        const data = await response.json();
+
+        // Transform Open-Meteo response to match expected format
+        const currentWeather = {
+            name: coordinates.state
+                ? `${coordinates.name}, ${coordinates.state}, ${coordinates.country}`
+                : `${coordinates.name}, ${coordinates.country}`,
+            main: {
+                temp: data.current.temperature_2m
+            },
+            weather: [{
+                description: getWeatherDescription(data.current.weather_code)
+            }],
+            dt: new Date(data.current.time).getTime() / 1000,
+            coord: {
+                lat: coordinates.lat,
+                lon: coordinates.lon
+            },
+            coordinates: coordinates,
+            timezone: coordinates.timezone || data.timezone
+        };
+
+        const yesterdayWeather = await getYesterdayWeather(cityName, coordinates);
+
+        displayWeatherComparison(currentWeather, yesterdayWeather);
+        saveRecentSearch(cityName);
+        storeWeatherData(cityName, currentWeather);
+
+    } catch (error) {
+        showError(error.message);
+    } finally {
+        hideLoading();
     }
-    
+}
+
+// Get current weather data using Open-Meteo Forecast API
+async function getCurrentWeather(city) {
+    // First get coordinates for the city
+    const coordinatesResult = await getCityCoordinates(city);
+
+    // Check if multiple cities were returned
+    if (Array.isArray(coordinatesResult)) {
+        // Show disambiguation UI
+        showCityDisambiguation(coordinatesResult, city);
+        return null; // Return early, user will select a city
+    }
+
+    const coordinates = coordinatesResult;
+
+    // Then get weather data using Open-Meteo Forecast API
+    const response = await fetchWithRetry(
+        `${FORECAST_URL}?latitude=${coordinates.lat}&longitude=${coordinates.lon}&current=temperature_2m,weather_code&timezone=${encodeURIComponent(coordinates.timezone || 'auto')}`
+    );
+
+    if (!response.ok) {
+        throw new Error('Unable to fetch weather data. Please try again.');
+    }
+
     const data = await response.json();
-    
-    // Transform One Call API response to match expected format
+
+    // Transform Open-Meteo response to match expected format
     return {
-        name: `${coordinates.name}, ${coordinates.country}`,
+        name: coordinates.state
+            ? `${coordinates.name}, ${coordinates.state}, ${coordinates.country}`
+            : `${coordinates.name}, ${coordinates.country}`,
         main: {
-            temp: data.current.temp
+            temp: data.current.temperature_2m
         },
-        weather: data.current.weather,
-        dt: data.current.dt,
+        weather: [{
+            description: getWeatherDescription(data.current.weather_code)
+        }],
+        dt: new Date(data.current.time).getTime() / 1000,
         coord: {
             lat: coordinates.lat,
             lon: coordinates.lon
         },
-        coordinates: coordinates // Pass coordinates for yesterday's weather lookup
+        coordinates: coordinates,
+        timezone: coordinates.timezone || data.timezone
     };
 }
 
-// Get yesterday's weather using One Call API 3.0 historical data
+// Get yesterday's weather using Open-Meteo Historical Weather API
 async function getYesterdayWeather(city, coordinates = null) {
     // Try to get stored data from yesterday first
     const stored = getStoredWeather(city);
     if (stored && isFromYesterday(stored.timestamp)) {
-        return stored.data;
+        return {
+            data: stored.data,
+            source: 'stored',
+            message: 'Yesterday\'s data from your previous search'
+        };
     }
-    
+
     try {
         // If no coordinates provided, get them from city name
         if (!coordinates) {
-            coordinates = await getCityCoordinates(city);
+            coordinates = await getCityCoordinates(city, false);
+            if (Array.isArray(coordinates)) {
+                coordinates = coordinates[0];
+            }
         }
-        
-        // Get yesterday's timestamp (24 hours ago)
-        const yesterdayTimestamp = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
-        
-        // Use One Call API timemachine endpoint for historical data
-        const response = await fetch(
-            `${ONECALL_URL}/timemachine?lat=${coordinates.lat}&lon=${coordinates.lon}&dt=${yesterdayTimestamp}&appid=${API_KEY}&units=metric`
+
+        // Get yesterday's date in ISO format (YYYY-MM-DD)
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const yesterdayDate = yesterday.toISOString().split('T')[0];
+
+        // Use Open-Meteo Historical Weather API (archive)
+        // This is FREE and includes historical data!
+        const timezone = coordinates.timezone || 'auto';
+        const response = await fetchWithRetry(
+            `${HISTORICAL_URL}?latitude=${coordinates.lat}&longitude=${coordinates.lon}&start_date=${yesterdayDate}&end_date=${yesterdayDate}&hourly=temperature_2m,weather_code&timezone=${encodeURIComponent(timezone)}`
         );
-        
+
         if (!response.ok) {
-            console.log('Historical data not available, using mock data');
-            return generateMockYesterdayWeather();
+            console.log('Historical data not available, using stored or mock data');
+            return {
+                data: generateMockYesterdayWeather(),
+                source: 'mock',
+                message: 'Using simulated data (historical data unavailable)'
+            };
         }
-        
+
         const data = await response.json();
-        
+
+        // Get the same hour as now from yesterday's data
+        const currentHour = new Date().getHours();
+        const yesterdayTemp = data.hourly.temperature_2m[currentHour] || data.hourly.temperature_2m[12]; // fallback to noon
+        const yesterdayCode = data.hourly.weather_code[currentHour] || data.hourly.weather_code[12];
+
         // Transform historical data to match expected format
         return {
-            main: {
-                temp: data.current.temp
+            data: {
+                main: {
+                    temp: yesterdayTemp
+                },
+                weather: [{
+                    description: getWeatherDescription(yesterdayCode)
+                }],
+                dt: yesterday.getTime() / 1000
             },
-            weather: data.current.weather,
-            dt: data.current.dt
+            source: 'api',
+            message: 'Actual historical data from Open-Meteo'
         };
-        
+
     } catch (error) {
         console.log('Error fetching historical data:', error.message);
         // Fallback to mock data if historical data fails
-        return generateMockYesterdayWeather();
+        return {
+            data: generateMockYesterdayWeather(),
+            source: 'mock',
+            message: 'Using simulated data (error fetching historical data)'
+        };
     }
 }
 
 // Display weather comparison
-function displayWeatherComparison(current, yesterday) {
+function displayWeatherComparison(current, yesterdayResult) {
+    // Extract yesterday data and source info
+    const yesterday = yesterdayResult.data || yesterdayResult;
+    const dataSource = yesterdayResult.source || 'unknown';
+    const dataMessage = yesterdayResult.message || '';
+
     // Update city name
     document.getElementById('cityName').textContent = current.name;
-    
+
+    // Show data source notice
+    const noticeElement = document.getElementById('dataSourceNotice');
+    if (dataSource && dataMessage) {
+        noticeElement.textContent = dataMessage;
+        noticeElement.classList.remove('hidden', 'info', 'success', 'warning');
+
+        if (dataSource === 'api') {
+            noticeElement.classList.add('success');
+        } else if (dataSource === 'stored') {
+            noticeElement.classList.add('info');
+        } else if (dataSource === 'mock') {
+            noticeElement.classList.add('warning');
+        }
+    } else {
+        noticeElement.classList.add('hidden');
+    }
+
+    // Get timezone from current weather data
+    const timezone = current.timezone || null;
+
     // Update current weather
     const currentTemp = Math.round(current.main.temp);
     document.getElementById('currentTemp').textContent = `${currentTemp}°C`;
     document.getElementById('currentDesc').textContent = current.weather[0].description;
-    document.getElementById('currentTime').textContent = formatTime(Date.now() / 1000);
-    
+    document.getElementById('currentTime').textContent = formatTime(Date.now() / 1000, timezone);
+
     // Update yesterday's weather
     const yesterdayTemp = Math.round(yesterday.main.temp);
     document.getElementById('yesterdayTemp').textContent = `${yesterdayTemp}°C`;
     document.getElementById('yesterdayDesc').textContent = yesterday.weather[0].description;
-    document.getElementById('yesterdayTime').textContent = formatTime(yesterday.dt);
+    document.getElementById('yesterdayTime').textContent = formatTime(yesterday.dt, timezone);
     
     // Calculate and display difference
     const diff = currentTemp - yesterdayTemp;
@@ -277,10 +514,11 @@ function displayWeatherComparison(current, yesterday) {
     
     // Show weather display
     weatherDisplay.classList.remove('hidden');
-    
-    // Show rain forecast if coordinates are available
-    if (current.coord && current.coord.lat && current.coord.lon) {
-        showRainForecast(current.coord.lat, current.coord.lon);
+
+    // Hide rain forecast for now (can be re-enabled with Open-Meteo precipitation data)
+    const rainContainer = document.getElementById('rainForecast');
+    if (rainContainer) {
+        rainContainer.classList.add('hidden');
     }
 }
 
@@ -384,12 +622,19 @@ function hideError() {
     errorMessage.classList.add('hidden');
 }
 
-function formatTime(timestamp) {
-    return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
+function formatTime(timestamp, timezone = null) {
+    const options = {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true
-    });
+    };
+
+    // If timezone is provided, use it; otherwise use local timezone
+    if (timezone) {
+        options.timeZone = timezone;
+    }
+
+    return new Date(timestamp * 1000).toLocaleTimeString('en-US', options);
 }
 
 // Demo mode (for when API key is not set)
@@ -419,96 +664,21 @@ window.addEventListener('online', () => {
     hideError();
 });
 
-// Rain Forecast Module
+// Rain Forecast Module - DISABLED (Can be re-enabled with Open-Meteo precipitation API)
+// Open-Meteo provides precipitation data via:
+// &hourly=precipitation,precipitation_probability
+// See: https://open-meteo.com/en/docs
+
+/*
 async function fetchRainForecast(lat, lon) {
-    try {
-        // Get minutely + first hour of hourly data for context
-        const response = await fetch(
-            `${ONECALL_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&exclude=daily,alerts`
-        );
-        
-        if (!response.ok) {
-            throw new Error('Unable to fetch rain forecast');
-        }
-        
-        const data = await response.json();
-        
-        return {
-            minutely: data.minutely || [], // 60 minutes of precipitation data
-            hourly: data.hourly ? data.hourly.slice(0, 1) : [], // First hour for probability context
-            location: data.timezone
-        };
-        
-    } catch (error) {
-        console.log('Error fetching rain forecast:', error.message);
-        return null;
-    }
+    // TODO: Implement with Open-Meteo hourly precipitation data
 }
 
 function createRainChart(rainData) {
-    if (!rainData || !rainData.minutely || rainData.minutely.length === 0) {
-        return '<div class="no-rain-data">No rain forecast data available</div>';
-    }
-
-    const maxPrecipitation = Math.max(...rainData.minutely.map(m => m.precipitation), 0.1);
-    const hourlyProb = rainData.hourly[0]?.pop || 0;
-    
-    let chartHTML = `
-        <div class="rain-forecast">
-            <div class="rain-header">
-                <h3>Next Hour Rain Forecast</h3>
-                <div class="rain-chance">Chance: ${Math.round(hourlyProb * 100)}%</div>
-            </div>
-            <div class="rain-chart">
-    `;
-    
-    // Create bars for each 5-minute interval (12 bars for 60 minutes)
-    for (let i = 0; i < 60; i += 5) {
-        const intervalData = rainData.minutely.slice(i, i + 5);
-        const avgPrecipitation = intervalData.length > 0 
-            ? intervalData.reduce((sum, m) => sum + m.precipitation, 0) / intervalData.length 
-            : 0;
-        
-        const heightPercent = maxPrecipitation > 0 ? (avgPrecipitation / maxPrecipitation) * 100 : 0;
-        const hasRain = avgPrecipitation > 0;
-        
-        chartHTML += `
-            <div class="rain-bar" data-time="${i}min">
-                <div class="bar ${hasRain ? 'has-rain' : ''}" 
-                     style="height: ${heightPercent}%"
-                     title="${avgPrecipitation.toFixed(2)}mm/h at +${i}min">
-                </div>
-                <div class="time-label">${i === 0 ? 'Now' : i + 'min'}</div>
-            </div>
-        `;
-    }
-    
-    chartHTML += `
-            </div>
-            <div class="rain-legend">
-                <span class="legend-item">
-                    <div class="legend-color has-rain"></div>
-                    Rain expected
-                </span>
-                <span class="legend-item">
-                    <div class="legend-color no-rain"></div>
-                    No rain
-                </span>
-            </div>
-        </div>
-    `;
-    
-    return chartHTML;
+    // TODO: Implement rain chart visualization
 }
 
 async function showRainForecast(lat, lon) {
-    const rainContainer = document.getElementById('rainForecast');
-    if (!rainContainer) return;
-    
-    rainContainer.innerHTML = '<div class="loading-rain">Loading rain forecast...</div>';
-    
-    const rainData = await fetchRainForecast(lat, lon);
-    const chartHTML = createRainChart(rainData);
-    
-    rainContainer.innerHTML = chartHTML;
-} 
+    // TODO: Implement rain forecast display
+}
+*/ 

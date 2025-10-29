@@ -7,41 +7,39 @@ A simple web application that shows current weather compared to yesterday's weat
 - **Weather Comparison**: See current weather vs yesterday's weather side by side
 - **Temperature Difference**: Color-coded temperature differences (red for warmer, blue for colder)
 - **Location Search**: Search by city name or use current location
+- **City Disambiguation**: Select from multiple cities with the same name
 - **Recent Searches**: Quick access to recently searched cities
+- **Timezone Support**: Times shown in location's timezone, not your local time
+- **Retry Logic**: Automatic retry on network failures with exponential backoff
+- **Data Source Indicators**: Clear messaging about data sources (API, stored, or simulated)
+- **Secure API Key Options**: Config file or backend proxy support
 - **Mobile Responsive**: Works perfectly on all devices
 - **Offline Support**: Basic offline detection
 - **Clean UI**: Modern, minimal design focused on the essential information
 
 ## 🚀 Quick Start
 
-### 1. Get an API Key
-1. Go to [OpenWeatherMap](https://openweathermap.org/api)
-2. Sign up for a free account
-3. Get your API key (free tier allows 1,000 calls/day)
+**No API key needed!** This app uses [Open-Meteo](https://open-meteo.com), a free open-source weather API.
 
-### 2. Setup
+### Setup & Run
 1. Clone or download this project
-2. Open `script.js`
-3. Replace `YOUR_API_KEY_HERE` with your actual API key:
-   ```javascript
-   const API_KEY = 'your_actual_api_key_here';
-   ```
+2. Open `index.html` in any modern web browser
+3. Enter a city name or use the location button
+4. See how today's weather compares to yesterday!
 
-### 3. Run
-1. Open `index.html` in any modern web browser
-2. Enter a city name or use the location button
-3. See how today's weather compares to yesterday!
+That's it! No configuration required.
 
 ## 📖 How It Works
 
 ### Data Sources
-- **Current Weather**: Fetched from OpenWeatherMap API
-- **Yesterday's Weather**: 
-  - Uses stored data from previous searches (via localStorage)
-  - Falls back to mock data for demonstration (since historical data requires paid API)
+- **Current Weather**: Fetched from Open-Meteo API (free, no key required)
+- **Yesterday's Weather**:
+  - **Real historical data** from Open-Meteo Archive API (free!)
+  - Falls back to stored data from previous searches (via localStorage)
+  - Last resort: simulated data for demonstration
 
 ### Data Storage
-The app stores today's weather data locally, so when you search for the same city tomorrow, it can show you the actual comparison. This works around the limitation of the free API tier not including historical data.
+The app stores today's weather data locally for quick access. Open-Meteo provides actual historical data for free, so you'll get real comparisons!
 
 ## 🎯 Usage
 
@@ -54,7 +52,7 @@ The app stores today's weather data locally, so when you search for the same cit
 
 ### Technologies Used
 - **Frontend**: Vanilla HTML, CSS, JavaScript (no frameworks)
-- **API**: OpenWeatherMap API
+- **API**: Open-Meteo API (free, open-source)
 - **Storage**: localStorage for data persistence
 - **Responsive**: CSS Grid and Flexbox
 
@@ -94,25 +92,29 @@ The code is structured to be easily extensible:
 
 ### Common Issues
 
-**"Please add your OpenWeatherMap API key"**
-- Make sure you've replaced `YOUR_API_KEY_HERE` in `script.js` with your actual API key
-
-**"Invalid API key"**
-- Check that your API key is correct
-- Make sure your API key is activated (can take a few minutes after signup)
-
 **"City not found"**
 - Try different spelling or add country code (e.g., "London, UK")
-- Some smaller cities might not be in the database
+- Some very small villages might not be in the database
 
 **Location not working**
 - Make sure you've granted location permission to your browser
 - Location services must be enabled on your device
 
-### API Limitations
-- Free tier: 1,000 calls/day
-- Historical data requires paid subscription
-- Some remote locations might not be available
+**Network errors**
+- The app automatically retries failed requests up to 3 times
+- Check your internet connection
+
+### Open-Meteo API
+- **Completely free** for non-commercial use
+- **No API key required**
+- **No rate limits** for reasonable use
+- **Includes historical data** going back 80+ years
+- Some very remote locations might not have full data coverage
+
+**Data Source Indicators**: The app will show you color-coded notices:
+- 🟢 Green: Real historical data from Open-Meteo API
+- 🔵 Blue: Data from your previous search (stored locally)
+- 🟠 Orange: Simulated data (only shown if API is unavailable)
 
 ## 🚀 Deployment
 
