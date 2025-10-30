@@ -13,6 +13,7 @@ export const elements = {
     locationBtn: document.getElementById('locationBtn'),
     weatherDisplay: document.getElementById('weatherDisplay'),
     currentConditionsCard: document.getElementById('currentConditionsCard'),
+    cityLabel: document.getElementById('cityLabel'),
     errorMessage: document.getElementById('errorMessage'),
     recentSearches: document.getElementById('recentSearches'),
     recentList: document.getElementById('recentList'),
@@ -39,6 +40,7 @@ export function showError(message) {
     elements.errorMessage.classList.remove('hidden');
     elements.weatherDisplay.classList.add('hidden');
     elements.currentConditionsCard.classList.add('hidden');
+    elements.cityLabel.classList.add('hidden');
 }
 
 export function hideError() {
@@ -63,8 +65,9 @@ function formatTime(timestamp, timezone = null) {
 
 // Display weather comparison
 export async function displayWeatherComparison(current, yesterday) {
-    // Update city name
-    document.getElementById('cityName').textContent = current.name;
+    // Show and update city label
+    elements.cityLabel.textContent = current.name;
+    elements.cityLabel.classList.remove('hidden');
 
     // Show and update current conditions card
     elements.currentConditionsCard.classList.remove('hidden');
@@ -202,6 +205,7 @@ export function showCityDisambiguation(cities) {
     hideError();
     elements.weatherDisplay.classList.add('hidden');
     elements.currentConditionsCard.classList.add('hidden');
+    elements.cityLabel.classList.add('hidden');
     elements.cityDisambiguation.classList.remove('hidden');
 
     elements.cityChoices.innerHTML = '';

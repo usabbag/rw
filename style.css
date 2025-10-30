@@ -213,19 +213,20 @@ header p {
     margin-top: 0.25rem;
 }
 
-/* Weather display */
-.weather-display {
-    /* Card styling handled by .card class */
-}
-
-#cityName {
+/* City Label - Standalone */
+.city-label {
     text-align: center;
     color: #8b8b8b;
     font-size: 0.875rem;
-    font-weight: 400;
-    margin-bottom: 2rem;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
+}
+
+/* Weather display */
+.weather-display {
+    /* Card styling handled by .card class */
 }
 
 /* Current Conditions Card - Compact */
@@ -627,9 +628,10 @@ header p {
         width: auto;
     }
 
-    #cityName {
-        margin-bottom: 1.5rem;
+    /* City label responsive */
+    .city-label {
         font-size: 0.8125rem;
+        margin-bottom: 1.25rem;
     }
 
     /* Current conditions responsive */
@@ -690,9 +692,10 @@ header p {
         margin-bottom: 2rem;
     }
 
-    #cityName {
+    /* City label mobile */
+    .city-label {
         font-size: 0.75rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     /* Stack columns on mobile */
