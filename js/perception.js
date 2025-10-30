@@ -1,4 +1,4 @@
-import { OPENROUTER_API_URL, OPENROUTER_MODEL, OPENROUTER_API_KEY } from './config.js';
+// No longer need to import API keys - handled server-side
 
 // Get perception label based on temperature difference
 export function getPerceptionLabel(diff) {
@@ -49,89 +49,24 @@ function formatWeatherDataForAI(current, yesterday) {
 ${Math.round(current.main.temp - yesterday.main.temp) > 0 ? '+' : ''}${Math.round(current.main.temp - yesterday.main.temp)}°C from yesterday`;
 }
 
-// Call OpenRouter API for AI-generated clothing advice with streaming support
+// Call serverless function for AI-generated clothing advice with streaming support
 async function getAIClothingAdvice(current, yesterday, location, onStream) {
-    // Check if API key is set
-    if (!OPENROUTER_API_KEY) {
-        console.log('OpenRouter API key not set, using rule-based suggestions');
-        return null;
-    }
-
     const weatherData = formatWeatherDataForAI(current, yesterday);
 
-    // System prompt from dresshelp.md
-    const systemPrompt = `You are a weather-based clothing advisor that helps people choose what to wear by comparing today's weather conditions with yesterday's weather at the same time. Your goal is to provide practical, nuanced clothing advice that accounts for how weather differences actually feel to humans, not just temperature numbers.
-
-Here is the weather data comparing today and yesterday:
-
-<weather_data>
-${weatherData}
-</weather_data>
-
-Location: ${location}
-
-Your task is to analyze the weather comparison and provide clothing recommendations that account for human perception of weather changes. Consider these key factors:
-
-**Human Weather Perception Challenges:**
-- People often dress based on what they see outside (sunny/cloudy) rather than actual temperature
-- Wind makes temperatures feel much colder than they are
-- Humidity affects how hot or cold temperatures feel
-- Sudden weather changes catch people off guard
-- Morning conditions may not reflect afternoon conditions
-- People tend to under-dress in transitional seasons
-- Layering decisions are often poorly planned
-
-**Analysis Framework:**
-1. **Temperature Difference Impact**: Consider not just the numeric difference, but how that translates to comfort. A 3°C difference can feel dramatic depending on the base temperature.
-
-2. **Wind Factor**: Wind significantly affects perceived temperature. Even light wind can make someone feel much colder than expected.
-
-3. **Humidity Considerations**: High humidity makes heat feel oppressive and cold feel more penetrating. Low humidity can make temperatures feel more comfortable.
-
-4. **Weather Condition Changes**: Moving from sunny to cloudy (or vice versa) affects both actual warmth and psychological comfort.
-
-5. **Activity Level**: Consider that people will be walking, commuting, and moving between indoor/outdoor environments.
-
-**Clothing Advice Principles:**
-- Be specific about garment types and layering strategies
-- Address common mistakes people make in similar conditions
-- Consider practical aspects like carrying extra layers
-- Be gender-neutral in recommendations
-- Account for the transition between different parts of the day
-- Mention accessories that make a big difference (scarves, hats, etc.)
-
-Provide exactly 3 sentences following this structure:
-
-Sentence 1: How today compares to yesterday in feel (not numbers).
-Sentence 2: Exactly what to wear (specific items, no explanations).
-Sentence 3: The main mistake to avoid today.
-
-Keep each sentence under 15 words. Be conversational but direct.
-Do NOT include analysis tags or detailed reasoning - just give the actionable advice directly.`;
-
     try {
-        const response = await fetch(OPENROUTER_API_URL, {
+        const response = await fetch('/api/clothing-advice', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': window.location.origin,
-                'X-Title': 'Relative Weather App'
             },
             body: JSON.stringify({
-                model: OPENROUTER_MODEL,
-                messages: [
-                    {
-                        role: 'user',
-                        content: systemPrompt
-                    }
-                ],
-                stream: true // Enable streaming
+                weatherData,
+                location
             })
         });
 
         if (!response.ok) {
-            console.error('OpenRouter API error:', response.status);
+            console.error('Clothing advice API error:', response.status);
             return null;
         }
 
@@ -174,7 +109,7 @@ Do NOT include analysis tags or detailed reasoning - just give the actionable ad
 
         return fullText || null;
     } catch (error) {
-        console.error('Error calling OpenRouter API:', error);
+        console.error('Error calling clothing advice API:', error);
         return null;
     }
 }
