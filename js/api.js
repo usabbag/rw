@@ -131,7 +131,8 @@ export async function getCurrentWeather(city) {
             temp: data.current.temperature_2m
         },
         weather: [{
-            description: getWeatherDescription(data.current.weather_code)
+            description: getWeatherDescription(data.current.weather_code),
+            code: data.current.weather_code
         }],
         dt: new Date(data.current.time).getTime() / 1000,
         coord: {
@@ -179,7 +180,8 @@ export async function fetchWeatherForCoordinates(coordinates) {
             temp: data.current.temperature_2m
         },
         weather: [{
-            description: getWeatherDescription(data.current.weather_code)
+            description: getWeatherDescription(data.current.weather_code),
+            code: data.current.weather_code
         }],
         dt: new Date(data.current.time).getTime() / 1000,
         coord: {
@@ -225,7 +227,8 @@ export async function fetchWeatherByCoords(lat, lon) {
             temp: data.current.temperature_2m
         },
         weather: [{
-            description: getWeatherDescription(data.current.weather_code)
+            description: getWeatherDescription(data.current.weather_code),
+            code: data.current.weather_code
         }],
         dt: new Date(data.current.time).getTime() / 1000,
         coord: {
@@ -347,4 +350,69 @@ export async function fetchCitySuggestions(query) {
     }
 
     return data.results;
+}
+
+// Get 6-hour temperature forecast (today and yesterday)
+export async function get6HourForecast(coordinates) {
+    const timezone = coordinates.timezone || 'auto';
+
+    // Get today's hourly forecast (full day, we'll slice it)
+    const todayResponse = await fetchWithRetry(
+        `${FORECAST_URL}?latitude=${coordinates.lat}&longitude=${coordinates.lon}&hourly=temperature_2m&timezone=${encodeURIComponent(timezone)}`
+    );
+
+    if (!todayResponse.ok) {
+        throw new Error('Unable to fetch hourly forecast data.');
+    }
+
+    const todayData = await todayResponse.json();
+
+    // Get yesterday's hourly data for the same time range
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const yesterdayDate = yesterday.toISOString().split('T')[0];
+
+    const yesterdayResponse = await fetchWithRetry(
+        `${HISTORICAL_URL}?latitude=${coordinates.lat}&longitude=${coordinates.lon}&start_date=${yesterdayDate}&end_date=${yesterdayDate}&hourly=temperature_2m&timezone=${encodeURIComponent(timezone)}`
+    );
+
+    if (!yesterdayResponse.ok) {
+        throw new Error('Unable to fetch historical hourly data.');
+    }
+
+    const yesterdayData = await yesterdayResponse.json();
+
+    // Find current hour index
+    const now = new Date();
+    const currentHourIndex = now.getHours();
+
+    // Extract next 6 hours from today's forecast
+    const todayTemps = [];
+    const todayTimes = [];
+    for (let i = 0; i < 6; i++) {
+        const hourIndex = currentHourIndex + i;
+        if (hourIndex < todayData.hourly.temperature_2m.length) {
+            todayTemps.push(todayData.hourly.temperature_2m[hourIndex]);
+            todayTimes.push(todayData.hourly.time[hourIndex]);
+        }
+    }
+
+    // Extract the corresponding 6 hours from yesterday
+    const yesterdayTemps = [];
+    for (let i = 0; i < 6; i++) {
+        const hourIndex = currentHourIndex + i;
+        if (hourIndex < 24 && hourIndex < yesterdayData.hourly.temperature_2m.length) {
+            yesterdayTemps.push(yesterdayData.hourly.temperature_2m[hourIndex]);
+        }
+    }
+
+    return {
+        today: {
+            times: todayTimes,
+            temperatures: todayTemps
+        },
+        yesterday: {
+            temperatures: yesterdayTemps
+        },
+        timezone: todayData.timezone
+    };
 }

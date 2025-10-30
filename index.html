@@ -30,7 +30,32 @@
             <div id="cityChoices"></div>
         </div>
 
-        <!-- Card 2: Weather Results -->
+        <!-- Card 2: Current Conditions (Compact) -->
+        <div id="currentConditionsCard" class="current-conditions-card card hidden">
+            <div class="current-conditions">
+                <div class="condition-emoji" id="conditionEmoji"></div>
+                <div class="condition-main">
+                    <div class="current-temp" id="currentTemp"></div>
+                    <div class="condition-description" id="conditionDescription"></div>
+                </div>
+                <div class="condition-details">
+                    <div class="condition-detail">
+                        <span class="detail-icon">🌡️</span>
+                        <span id="feelsLike"></span>
+                    </div>
+                    <div class="condition-detail">
+                        <span class="detail-icon">💧</span>
+                        <span id="humidity"></span>
+                    </div>
+                    <div class="condition-detail">
+                        <span class="detail-icon">💨</span>
+                        <span id="windSpeed"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Relative Weather (Value Prop) -->
         <div id="weatherDisplay" class="weather-display card hidden">
             <h2 id="cityName"></h2>
 
@@ -54,20 +79,11 @@
                 </div>
             </div>
 
+            <!-- 6-hour temperature forecast chart -->
+            <div id="tempForecast" class="temp-forecast-wrapper hidden"></div>
+
             <!-- Rain forecast chart -->
             <div id="rainForecast" class="rain-forecast-wrapper hidden"></div>
-
-            <!-- Details: Today and Yesterday (secondary) -->
-            <div class="weather-details">
-                <div class="detail-row">
-                    <span class="detail-label">Today</span>
-                    <span class="detail-value" id="todayDetails"></span>
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Yesterday</span>
-                    <span class="detail-value" id="yesterdayDetails"></span>
-                </div>
-            </div>
         </div>
 
         <div id="errorMessage" class="error hidden"></div>

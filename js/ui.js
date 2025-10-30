@@ -2,6 +2,9 @@ import { getContextualSuggestion } from './perception.js';
 import { getRecentSearches } from './storage.js';
 import { getRainForecast } from './rain.js';
 import { displayRainChart, showRainLoading, hideRainChart } from './rainChart.js';
+import { displayTempChart, showTempLoading, hideTempChart } from './tempChart.js';
+import { getWeatherEmoji } from './weather.js';
+import { get6HourForecast } from './api.js';
 
 // DOM elements
 export const elements = {
@@ -9,6 +12,7 @@ export const elements = {
     searchBtn: document.getElementById('searchBtn'),
     locationBtn: document.getElementById('locationBtn'),
     weatherDisplay: document.getElementById('weatherDisplay'),
+    currentConditionsCard: document.getElementById('currentConditionsCard'),
     errorMessage: document.getElementById('errorMessage'),
     recentSearches: document.getElementById('recentSearches'),
     recentList: document.getElementById('recentList'),
@@ -34,6 +38,7 @@ export function showError(message) {
     elements.errorMessage.textContent = message;
     elements.errorMessage.classList.remove('hidden');
     elements.weatherDisplay.classList.add('hidden');
+    elements.currentConditionsCard.classList.add('hidden');
 }
 
 export function hideError() {
@@ -60,6 +65,16 @@ function formatTime(timestamp, timezone = null) {
 export async function displayWeatherComparison(current, yesterday) {
     // Update city name
     document.getElementById('cityName').textContent = current.name;
+
+    // Show and update current conditions card
+    elements.currentConditionsCard.classList.remove('hidden');
+    const weatherCode = current.weather[0].code;
+    document.getElementById('conditionEmoji').textContent = getWeatherEmoji(weatherCode);
+    document.getElementById('currentTemp').textContent = `${Math.round(current.main.temp)}°C`;
+    document.getElementById('conditionDescription').textContent = current.weather[0].description;
+    document.getElementById('feelsLike').textContent = `Feels like ${Math.round(current.extended.apparent_temperature)}°C`;
+    document.getElementById('humidity').textContent = `${Math.round(current.extended.humidity)}%`;
+    document.getElementById('windSpeed').textContent = `${Math.round(current.extended.wind_speed)} km/h`;
 
     // Get timezone from current weather data
     const timezone = current.timezone || null;
@@ -103,17 +118,6 @@ export async function displayWeatherComparison(current, yesterday) {
     differenceLabelEl.textContent = diffLabel;
     differenceValueEl.parentElement.className = `difference-main ${className}`;
 
-    // Update details (secondary information)
-    const todayTime = formatTime(Date.now() / 1000, timezone);
-    const yesterdayTime = formatTime(yesterday.dt, timezone);
-
-    document.getElementById('todayDetails').textContent =
-        `${currentTemp}°C · ${current.weather[0].description} · ${todayTime}`;
-
-    // Update yesterday's details in the same format
-    document.getElementById('yesterdayDetails').textContent =
-        `${yesterdayTemp}°C · ${yesterday.weather[0].description} · ${yesterdayTime}`;
-
     // Show weather display immediately
     elements.weatherDisplay.classList.remove('hidden');
 
@@ -139,8 +143,29 @@ export async function displayWeatherComparison(current, yesterday) {
         suggestionEl.classList.remove('loading');
     });
 
+    // Fetch and display 6-hour temperature forecast
+    fetchAndDisplayTempForecast(current.coordinates, timezone);
+
     // Fetch and display rain forecast
     fetchAndDisplayRainForecast(current.coord.lat, current.coord.lon, timezone);
+}
+
+// Fetch and display 6-hour temperature forecast
+async function fetchAndDisplayTempForecast(coordinates, timezone) {
+    try {
+        showTempLoading();
+
+        const forecastData = await get6HourForecast(coordinates);
+
+        if (forecastData) {
+            displayTempChart(forecastData, timezone);
+        } else {
+            hideTempChart();
+        }
+    } catch (error) {
+        console.error('Error fetching temperature forecast:', error);
+        hideTempChart();
+    }
 }
 
 // Fetch and display rain forecast
@@ -150,8 +175,18 @@ async function fetchAndDisplayRainForecast(lat, lon, timezone) {
 
         const rainData = await getRainForecast(lat, lon);
 
-        if (rainData) {
-            displayRainChart(rainData, timezone);
+        if (rainData && rainData.forecast && rainData.forecast.length > 0) {
+            // Check if there's any rain in the next hour
+            const nextHour = rainData.forecast.slice(0, 60);
+            const hasRain = nextHour.some(point => (point?.precipRate || 0) > 0.1);
+
+            if (hasRain) {
+                // Show chart only if there's rain detected
+                displayRainChart(rainData, timezone);
+            } else {
+                // Hide chart if no rain
+                hideRainChart();
+            }
         } else {
             // If no rain data available, hide the chart
             hideRainChart();
@@ -166,6 +201,7 @@ async function fetchAndDisplayRainForecast(lat, lon, timezone) {
 export function showCityDisambiguation(cities) {
     hideError();
     elements.weatherDisplay.classList.add('hidden');
+    elements.currentConditionsCard.classList.add('hidden');
     elements.cityDisambiguation.classList.remove('hidden');
 
     elements.cityChoices.innerHTML = '';
