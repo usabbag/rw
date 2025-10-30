@@ -64,6 +64,10 @@ export async function displayWeatherComparison(current, yesterday) {
     // Get timezone from current weather data
     const timezone = current.timezone || null;
 
+    // Update comparison header with time
+    const currentTime = formatTime(Date.now() / 1000, timezone);
+    document.getElementById('comparisonHeader').textContent = `Compared to Yesterday at ${currentTime}`;
+
     // Calculate temperature difference
     const currentTemp = Math.round(current.main.temp);
     const yesterdayTemp = Math.round(yesterday.main.temp);
