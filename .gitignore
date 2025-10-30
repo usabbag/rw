@@ -12,3 +12,6 @@ Thumbs.db
 # config.js
 /docs
 /CLAUDE.md
+
+# Wrangler local env vars (contains API keys)
+.dev.vars

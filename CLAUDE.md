@@ -4,174 +4,245 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Relative Weather App** is a vanilla JavaScript web application that compares current weather with yesterday's weather at the same time. It helps users understand relative temperature changes rather than absolute values.
+**Relative Weather App** is a modular JavaScript web application that compares current weather with yesterday's weather at the same time. It helps users understand relative temperature changes rather than absolute values.
 
-**Design Philosophy**: Inverted information hierarchy - the temperature *difference* is the hero element, with actual temperatures as supporting details. Includes perception labels and contextual suggestions for better user understanding.
-
-**API**: Uses [Open-Meteo](https://open-meteo.com) - a free, open-source weather API with no key required.
+**Design Philosophy**: Inverted information hierarchy - the temperature *difference* is the hero element, with actual temperatures as supporting details. Features AI-powered clothing suggestions, real-time rain forecasts, and autocomplete city search.
 
 ## Architecture
 
-### Single-Page Application Structure
-- **No build system**: Pure HTML, CSS, and JavaScript - open `index.html` directly in a browser
-- **No frameworks**: Vanilla JavaScript using modern DOM APIs
-- **No package manager**: No dependencies to install
+### Technology Stack
+- **Frontend**: Modular vanilla JavaScript (ES6 modules) - no build system required
+- **Weather API**: [Open-Meteo](https://open-meteo.com) - free, no API key required
+- **AI Integration**: OpenRouter API via Cloudflare Pages Functions (streaming responses)
+- **Rain Forecasting**: Rainbow.ai API via Cloudflare Pages Functions
+- **Deployment**: Cloudflare Pages with serverless functions
 
-### Core Components
+### Modular Code Structure
 
-1. **API Integration (script.js)**
-   - Uses **Open-Meteo API** (free, no API key required)
-   - Three API endpoints:
-     - **Geocoding**: `geocoding-api.open-meteo.com/v1/search` - city name to coordinates
-     - **Current Weather**: `api.open-meteo.com/v1/forecast` - current conditions
-     - **Historical Data**: `archive-api.open-meteo.com/v1/archive` - past weather (FREE!)
+The application is organized into **7 specialized JavaScript modules**:
 
-2. **Weather Code System**
-   - Open-Meteo uses WMO Weather Interpretation Codes (standard system)
-   - Script includes `WMO_WEATHER_CODES` mapping object (line 9-38)
-   - `getWeatherDescription()` converts numeric codes to readable text
+1. **`js/main.js`** - Application entry point and event handlers
+   - Initializes the app on DOM load
+   - Handles search, geolocation, and autocomplete events
+   - Coordinates between all modules
+   - Includes debounce helper for autocomplete (300ms delay)
 
-3. **Data Storage Strategy**
-   - Uses `localStorage` for recent searches only
-   - Recent searches stored in `recentSearches` key (max 5 cities)
-   - No weather data caching - always fetches live data
+2. **`js/api.js`** - All weather API interactions
+   - Open-Meteo integration (geocoding, current, historical)
+   - `fetchWithRetry()` - exponential backoff retry logic (3 attempts)
+   - `getCurrentWeather()` - fetches current conditions + extended data for AI
+   - `getYesterdayWeather()` - fetches historical data from archive API
+   - `getCityCoordinates()` - geocoding with disambiguation support
+   - `fetchCitySuggestions()` - autocomplete suggestions
+   - Extended weather parameters for AI analysis (apparent temp, humidity, wind, UV, etc.)
 
-4. **Data Source**
-   - **Only source**: Open-Meteo historical API (real data from yesterday)
-   - No fallback or mock data - shows error if API unavailable
+3. **`js/weather.js`** - Weather code translations
+   - `WMO_WEATHER_CODES` mapping object (WMO codes → readable descriptions)
+   - `getWeatherDescription()` - converts numeric codes to text
 
-5. **UX Enhancement Functions**
-   - `getPerceptionLabel(diff)`: Returns human-readable perception ("Noticeably warmer", "Slightly cooler", etc.)
-   - `getContextualSuggestion(diff, currentTemp, currentDesc, yesterdayDesc)`: Provides actionable clothing/activity suggestions
-   - Scaffolded for future AI-generated suggestions via API
+4. **`js/ui.js`** - All DOM manipulation and display logic
+   - Element references (`elements` object)
+   - Loading states, error handling, suggestions display
+   - `displayWeatherComparison()` - main display logic with streaming AI suggestions
+   - `showCityDisambiguation()` - Promise-based city selection UI
+   - `formatTime()` - timezone-aware time formatting
+   - Rain forecast display integration
 
-### Key Functions
+5. **`js/perception.js`** - AI-powered clothing advice (formerly rule-based)
+   - `getContextualSuggestion()` - orchestrates AI suggestions with fallback
+   - `getAIClothingAdvice()` - calls serverless function with streaming support
+   - `formatWeatherDataForAI()` - formats extended weather data for AI prompt
+   - Fallback to rule-based suggestions if API unavailable
+   - **Streaming support**: callbacks for real-time text display
 
-- `getCityCoordinates(city, allowMultiple)`: Geocodes city using Open-Meteo Geocoding API
-- `getCurrentWeather(city)`: Fetches current weather from Forecast API
-- `getYesterdayWeather(city, coordinates)`: Gets real historical data from Archive API
-- `getWeatherDescription(wmoCode)`: Converts WMO codes to readable weather descriptions
-- `getPerceptionLabel(diff)`: Returns perception label based on temperature difference magnitude
-- `getContextualSuggestion(...)`: Generates contextual clothing/activity suggestions
-- `displayWeatherComparison()`: Renders inverted-hierarchy display with difference as hero element
+6. **`js/storage.js`** - LocalStorage management
+   - Recent search persistence (max 5 cities)
+   - `saveRecentSearch()`, `getRecentSearches()`
 
-## API Configuration
+7. **`js/rain.js` & `js/rainChart.js`** - Rain forecast functionality
+   - Calls `/api/rain-forecast` serverless function
+   - Displays minute-by-minute precipitation chart for next hour
+   - Uses Rainbow.ai API for nowcast data
 
-**No API key needed!** Open-Meteo is completely free for non-commercial use.
+### Serverless Functions (Cloudflare Pages Functions)
 
-### API Endpoints (script.js lines 3-5)
-```javascript
-const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
-const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
-const HISTORICAL_URL = 'https://archive-api.open-meteo.com/v1/archive';
+Located in `functions/api/`:
+
+1. **`clothing-advice.js`** - AI clothing suggestions endpoint
+   - Accepts weather data + location
+   - Calls OpenRouter API with streaming (anthropic/claude-haiku-4.5)
+   - Returns Server-Sent Events (SSE) stream
+   - Requires `OPENROUTER_API_KEY` environment variable
+   - **Important**: Buffers incomplete SSE lines to prevent truncation
+
+2. **`rain-forecast.js`** - Rain forecast proxy endpoint
+   - Accepts lat/lon coordinates
+   - Calls Rainbow.ai nowcast API (note: **lon/lat order**)
+   - Requires `RAINBOW_API_KEY` environment variable
+   - Header: `Ocp-Apim-Subscription-Key` (Azure standard)
+
+## Local Development
+
+### Running Locally Without Serverless Functions
+```bash
+# Simply open index.html in a browser
+open index.html
+# OR
+python3 -m http.server 8000  # Then visit http://localhost:8000
 ```
 
-### API Features
-- **No rate limits** for reasonable use
-- **Historical data included** (80+ years of data)
-- **No authentication** required
-- **Open source** and transparent
+**Note**: AI clothing advice and rain forecasts require serverless functions (won't work with simple file:///)
 
-## Testing
+### Running Locally WITH Serverless Functions
+```bash
+# Install Wrangler CLI if not already installed
+npm install -g wrangler
 
-**No automated tests exist.** To test manually:
+# Create .dev.vars file with API keys
+cat > .dev.vars << EOF
+OPENROUTER_API_KEY=your-key-here
+RAINBOW_API_KEY=your-key-here
+EOF
 
-1. **Basic functionality**: Open `index.html` in browser
-2. **Search by city**: Enter "London" and verify weather displays
-3. **Geolocation**: Click 📍 button (requires HTTPS or localhost)
-4. **Recent searches**: Search multiple cities, verify they appear below
-5. **LocalStorage**: Search same city on different days to test real comparison
-6. **Offline mode**: Disable network to test offline detection
+# Run local dev server
+wrangler pages dev .
+
+# Visit http://localhost:8788
+```
 
 ## Deployment
 
-**Static hosting only** - no server required:
+### Cloudflare Pages (Recommended)
 
-```bash
-# GitHub Pages - just enable in repo settings
-# Netlify - drag and drop the project folder
-# Vercel - import repository
+The app uses Cloudflare Pages Functions for serverless API proxying.
+
+**Environment Variables Required:**
+- `OPENROUTER_API_KEY` - Get from https://openrouter.ai/keys
+- `RAINBOW_API_KEY` - Sign up at https://developer.rainbow.ai/
+
+**Setup Steps:**
+1. Connect repo to Cloudflare Pages
+2. Add environment variables in Settings → Environment variables
+3. Deploy automatically via git push
+
+See `DEPLOYMENT.md` for detailed setup instructions.
+
+### Alternative Static Hosting
+
+For basic functionality without AI/rain features, deploy to any static host:
+- GitHub Pages
+- Netlify
+- Vercel
+
+Just deploy the repository - no build step required.
+
+## Common Development Tasks
+
+### Adding New Weather Parameters
+
+To extend weather data collection:
+
+1. **Update API request** in `js/api.js`:
+   ```javascript
+   const CURRENT_PARAMS = [
+     'temperature_2m',
+     'weather_code',
+     'your_new_parameter'  // Add here
+   ].join(',');
+   ```
+
+2. **Add to response mapping** in `getCurrentWeather()` or `getYesterdayWeather()`:
+   ```javascript
+   extended: {
+     your_new_parameter: data.current.your_new_parameter
+   }
+   ```
+
+3. **Use in UI** via `current.extended.your_new_parameter` or `yesterday.extended.your_new_parameter`
+
+### Modifying AI Prompt
+
+Edit the system prompt in `functions/api/clothing-advice.js` (lines 38-85). The prompt uses structured analysis with specific output requirements.
+
+### Adjusting Autocomplete Behavior
+
+Modify debounce delay in `js/main.js:166`:
+```javascript
+const debouncedFetchSuggestions = debounce(handleAutocompleteInput, 300); // Change 300ms
 ```
 
-Files needed for deployment: `index.html`, `style.css`, `script.js`
+### Changing Temperature Units
 
-## Common Modifications
+Add `&temperature_unit=fahrenheit` to API URLs in `js/config.js` (if that file exists) or directly in `js/api.js` fetch calls.
 
-### Change temperature units
-Add `&temperature_unit=fahrenheit` to API URLs to get Fahrenheit instead of Celsius.
+## Key Implementation Details
 
-### Add weather parameters
-Open-Meteo Forecast API supports additional variables:
-- `relative_humidity_2m` - humidity percentage
-- `apparent_temperature` - feels like temperature
-- `wind_speed_10m` - wind speed
-- `precipitation_probability` - chance of rain
+### Streaming AI Response Handling
 
-Add to `&current=` parameter, e.g., `&current=temperature_2m,weather_code,relative_humidity_2m`
+The `js/perception.js` module implements SSE streaming with a critical **buffer for incomplete lines**:
 
-### Modify temperature difference thresholds
-Currently all differences are shown. To add thresholds:
-- Edit lines 264-273 in `script.js`
-- Add conditional logic (e.g., only show if `Math.abs(diff) > 3`)
+```javascript
+let buffer = ''; // Buffer for incomplete lines
+const lines = buffer.split('\n');
+buffer = lines.pop() || ''; // Keep last incomplete line
+```
 
-### Extend localStorage retention
-Function `isFromYesterday()` (line 303) accepts data from 20-36 hours ago. Adjust `diffDays` range to modify this window.
+This prevents truncation of Server-Sent Events during streaming.
+
+### City Disambiguation Flow
+
+1. User types city name → `getCurrentWeather()` returns `needsDisambiguation: true`
+2. UI shows city selection → returns Promise that resolves with selected coordinates
+3. Weather fetched for specific coordinates → bypasses disambiguation
+
+**Autocomplete bypasses disambiguation**: Selecting from dropdown provides exact coordinates immediately.
+
+### Timezone Handling
+
+- `formatTime()` in `js/ui.js` uses location's timezone from Open-Meteo
+- Times are displayed in the **searched location's timezone**, not user's local time
+- Critical for comparing "same time yesterday"
+
+### Extended Weather Data
+
+AI clothing advice uses **12 additional weather parameters** beyond basic temp/conditions:
+- Apparent temperature (feels like)
+- Humidity, wind speed/direction/gusts
+- Precipitation, pressure, cloud cover
+- UV index, dew point
+- Daily min/max temperatures
+
+These are fetched in `js/api.js` and passed to the AI prompt formatter in `js/perception.js`.
 
 ## Browser Compatibility
 
-- **Required**: ES6+ support (async/await, arrow functions, template literals)
-- **Geolocation**: Requires HTTPS (except localhost)
-- **LocalStorage**: Required for comparisons and recent searches
-- **CSS Grid**: Used for responsive layout
+- **ES6 Modules**: Required (all modern browsers)
+- **Async/Await**: Required
+- **Geolocation API**: Requires HTTPS (except localhost)
+- **Fetch API & ReadableStream**: For streaming responses
+- **LocalStorage**: For recent searches
 
-## Recent Major Changes
+## Troubleshooting
 
-### Migration to Open-Meteo (2025)
+### AI Suggestions Not Loading
+1. Check browser console for errors
+2. Verify `OPENROUTER_API_KEY` is set in Cloudflare Pages environment variables
+3. Confirm OpenRouter account has credits
+4. Check `/api/clothing-advice` endpoint is accessible
+5. Rule-based fallback should still work
 
-**Switched from OpenWeatherMap to Open-Meteo** for several benefits:
+### Rain Chart Not Displaying
+1. Check `RAINBOW_API_KEY` environment variable
+2. Rainbow.ai coverage may not include all locations
+3. Feature gracefully hides if data unavailable
+4. Check browser console for API errors
 
-1. **No API Key Required**: Zero configuration, works immediately
-2. **Free Historical Data**: Real yesterday's weather data (not simulated)
-3. **No Rate Limits**: Reasonable use is completely free
-4. **Open Source**: Transparent and community-driven
+### Streaming Response Truncation
+- **Buffer implementation critical**: See `js/perception.js:84-88`
+- SSE messages can arrive split across chunks
+- Buffer holds incomplete lines until complete
 
-### UX Redesign (2025)
-
-**Inverted Information Hierarchy** - Focused on what matters most:
-
-1. **Difference as Hero**: Temperature difference is the primary, largest element
-   - Large directional arrow (↑ ↓ →) with difference value
-   - Color-coded: Red for warmer, Blue for cooler, Green for same
-
-2. **Perception Labels**: Human-readable understanding
-   - "Slightly warmer", "Noticeably cooler", "Much warmer", etc.
-   - Based on magnitude thresholds (0-2°C, 2-5°C, 5-10°C, 10+°C)
-
-3. **Contextual Suggestions**: Actionable advice
-   - Clothing recommendations based on temperature change
-   - Scaffolded for future AI-generated suggestions
-   - Currently uses rule-based logic
-
-4. **Secondary Details**: Actual temperatures moved to supporting role
-   - Clean list format at bottom
-   - Shows: temp · weather · time
-
-5. **Autocomplete Search**: Live city suggestions as you type
-   - Debounced API calls (300ms)
-   - Bypasses disambiguation when selecting from suggestions
-
-### Existing Features
-
-1. **Retry Logic**: Automatic retry with exponential backoff (up to 3 retries)
-   - See `fetchWithRetry()` in script.js
-
-2. **City Disambiguation**: Select from multiple matching cities (when typing manually)
-   - Autocomplete suggestions bypass this step
-
-3. **Timezone Support**: Times shown in location's timezone
-   - See `formatTime()` function
-
-## Notes
-
-- **Rain forecast temporarily disabled**: Can be re-enabled using Open-Meteo's `precipitation` parameter
-- **WMO Weather Codes**: Uses standard WMO code system instead of proprietary codes
+### City Not Found
+- Try alternative spelling or add country (e.g., "Paris, France")
+- Very small villages may not be in Open-Meteo's geocoding database
+- Use autocomplete suggestions for better results

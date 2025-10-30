@@ -40,11 +40,9 @@ export function displayRainChart(rainData, timezone = null) {
     const chartHTML = `
         <div class="rain-forecast">
             <div class="rain-header">
-                <h3>☔ Rain - Next Hour</h3>
+                <h3>${summary}</h3>
                 <div class="rain-chance">${rainChance}% chance</div>
             </div>
-
-            <div class="rain-summary">${summary}</div>
 
             <div class="rain-chart">
                 ${sampledData.map((data, index) => {
@@ -57,9 +55,6 @@ export function displayRainChart(rainData, timezone = null) {
                     const timestamp = data.timestampBegin;
                     const time = formatTimeForChart(timestamp, timezone);
 
-                    // Only show time label every 3 bars (every 15 minutes)
-                    const showTime = index % 3 === 0;
-
                     return `
                         <div class="rain-bar">
                             <div
@@ -69,9 +64,18 @@ export function displayRainChart(rainData, timezone = null) {
                                 data-time="${time}"
                                 title="${time}: ${precipRate.toFixed(1)} mm/h"
                             ></div>
-                            ${showTime ? `<div class="time-label">${time}</div>` : '<div class="time-label"></div>'}
                         </div>
                     `;
+                }).join('')}
+            </div>
+
+            <div class="rain-time-labels">
+                ${sampledData.map((data, index) => {
+                    const timestamp = data.timestampBegin;
+                    const time = formatTimeForChart(timestamp, timezone);
+                    const showTime = index % 3 === 0;
+
+                    return `<div class="time-label">${showTime ? time : ''}</div>`;
                 }).join('')}
             </div>
         </div>
