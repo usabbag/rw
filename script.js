@@ -821,8 +821,10 @@ async function displayWeatherComparison(current, yesterday) {
     document.getElementById('todayDetails').textContent =
         `${currentTemp}°C · ${current.weather[0].description} · ${todayTime}`;
 
-    document.getElementById('yesterdayDetails').textContent =
-        `${yesterdayTemp}°C · ${yesterday.weather[0].description} · ${yesterdayTime}`;
+    // Update yesterday's separate elements
+    document.getElementById('yesterdayTemp').textContent = `${yesterdayTemp}°C`;
+    document.getElementById('yesterdayDesc').textContent = yesterday.weather[0].description;
+    document.getElementById('yesterdayTime').textContent = yesterdayTime;
 
     // Show weather display
     weatherDisplay.classList.remove('hidden');
