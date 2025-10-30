@@ -10,7 +10,7 @@ export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions
 export const OPENROUTER_MODEL = 'anthropic/claude-haiku-4.5';
 // Add your OpenRouter API key here (or leave empty for rule-based suggestions)
 // Get your key at: https://openrouter.ai/keys
-export const OPENROUTER_API_KEY = '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';
+export const OPENROUTER_API_KEY = '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';
 
 // Retry configuration
 export const MAX_RETRIES = 3;
