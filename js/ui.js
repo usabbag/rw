@@ -1,5 +1,7 @@
 import { getContextualSuggestion } from './perception.js';
 import { getRecentSearches } from './storage.js';
+import { getRainForecast } from './rain.js';
+import { displayRainChart, showRainLoading, hideRainChart } from './rainChart.js';
 
 // DOM elements
 export const elements = {
@@ -133,10 +135,26 @@ export async function displayWeatherComparison(current, yesterday) {
         suggestionEl.classList.remove('loading');
     });
 
-    // Hide rain forecast for now (can be re-enabled with Open-Meteo precipitation data)
-    const rainContainer = document.getElementById('rainForecast');
-    if (rainContainer) {
-        rainContainer.classList.add('hidden');
+    // Fetch and display rain forecast
+    fetchAndDisplayRainForecast(current.coord.lat, current.coord.lon, timezone);
+}
+
+// Fetch and display rain forecast
+async function fetchAndDisplayRainForecast(lat, lon, timezone) {
+    try {
+        showRainLoading();
+
+        const rainData = await getRainForecast(lat, lon);
+
+        if (rainData) {
+            displayRainChart(rainData, timezone);
+        } else {
+            // If no rain data available, hide the chart
+            hideRainChart();
+        }
+    } catch (error) {
+        console.error('Error fetching rain forecast:', error);
+        hideRainChart();
     }
 }
 
