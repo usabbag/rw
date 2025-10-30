@@ -36,8 +36,11 @@ export function displayRainChart(rainData, timezone = null) {
     // Find max precipitation for height scaling
     const maxPrecip = Math.max(...sampledData.map(d => d.precipRate || 0), 0.5);
 
-    // Define absolute intensity scale for color mapping (mm/h)
-    const INTENSITY_SCALE_MAX = 15; // Maximum for color scale
+    // Calculate min/max precipitation in this hour for relative scaling
+    const precipRates = sampledData.map(d => d.precipRate || 0).filter(r => r > RAIN_THRESHOLD);
+    const minPrecip = precipRates.length > 0 ? Math.min(...precipRates) : 0;
+    const maxPrecipInHour = precipRates.length > 0 ? Math.max(...precipRates) : 0;
+    const precipRange = maxPrecipInHour - minPrecip;
 
     // Generate chart HTML
     const chartHTML = `
@@ -55,21 +58,41 @@ export function displayRainChart(rainData, timezone = null) {
                     const hasRain = precipRate > RAIN_THRESHOLD;
                     const heightPercent = maxPrecip > 0 ? (precipRate / maxPrecip) * 100 : 0;
 
-                    // Calculate absolute intensity (0-1 scale) based on absolute precipitation rate
-                    // This ensures dark blue always means "heavy rain" regardless of context
-                    let absoluteIntensity = 0;
+                    // Use a hybrid approach for color intensity:
+                    // 1. Apply square root scaling to amplify differences at lower values
+                    // 2. Combine with relative intensity within the hour
+                    let intensity = 0;
                     if (hasRain) {
-                        absoluteIntensity = Math.min(precipRate / INTENSITY_SCALE_MAX, 1);
+                        // Square root scaling makes small differences more visible
+                        // E.g., 0.1mm -> 0.316, 0.5mm -> 0.707, 1mm -> 1.0, 4mm -> 2.0
+                        const sqrtScaled = Math.sqrt(precipRate);
+
+                        // Normalize to 0-1 range with increased sensitivity for light rain
+                        // Use 4mm as the max for square root scale (sqrt(4) = 2)
+                        const absoluteIntensity = Math.min(sqrtScaled / 2, 1);
+
+                        // Calculate relative position within this hour's range
+                        let relativeIntensity = 0;
+                        if (precipRange > 0.1) {
+                            relativeIntensity = (precipRate - minPrecip) / precipRange;
+                        }
+
+                        // Blend absolute (60%) and relative (40%) intensity
+                        // This ensures variation is visible even in consistent light rain
+                        intensity = (absoluteIntensity * 0.6) + (relativeIntensity * 0.4);
+
+                        // Ensure minimum intensity of 0.25 for any rain to make it clearly visible
+                        intensity = Math.max(intensity, 0.25);
                     }
 
-                    // Generate gradient colors based on absolute intensity
-                    // Light blue (168, 216, 255) for light rain -> Dark blue (44, 107, 179) for heavy rain
-                    const lightColor = { r: 168, g: 216, b: 255 };
-                    const darkColor = { r: 44, g: 107, b: 179 };
+                    // Generate gradient colors with expanded range
+                    // Very light blue (180, 225, 255) for light rain -> Deep blue (25, 80, 150) for heavy rain
+                    const lightColor = { r: 180, g: 225, b: 255 };
+                    const darkColor = { r: 25, g: 80, b: 150 };
 
-                    const r = Math.round(lightColor.r + (darkColor.r - lightColor.r) * absoluteIntensity);
-                    const g = Math.round(lightColor.g + (darkColor.g - lightColor.g) * absoluteIntensity);
-                    const b = Math.round(lightColor.b + (darkColor.b - lightColor.b) * absoluteIntensity);
+                    const r = Math.round(lightColor.r + (darkColor.r - lightColor.r) * intensity);
+                    const g = Math.round(lightColor.g + (darkColor.g - lightColor.g) * intensity);
+                    const b = Math.round(lightColor.b + (darkColor.b - lightColor.b) * intensity);
 
                     const gradientColor = `linear-gradient(to top, rgb(${r}, ${g}, ${b}), rgb(${Math.min(r + 20, 255)}, ${Math.min(g + 20, 255)}, ${Math.min(b + 20, 255)}))`;
                     const noRainColor = '#e5e5e5';

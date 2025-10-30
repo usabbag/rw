@@ -34,17 +34,24 @@
         <div id="weatherDisplay" class="weather-display card hidden">
             <h2 id="cityName"></h2>
 
-            <!-- Hero: Temperature difference -->
-            <div class="section-header" id="comparisonHeader">Compared to Yesterday</div>
-            <div class="difference-hero">
-                <div class="difference-main">
-                    <span id="differenceValue"></span>
-                    <span id="differenceLabel"></span>
+            <!-- Two-column layout: Temperature + Advice -->
+            <div class="comparison-container">
+                <!-- Left column: Temperature difference (~1/3) -->
+                <div class="temperature-column">
+                    <div class="section-header" id="comparisonHeader">Now, compared to Yesterday</div>
+                    <div class="difference-hero">
+                        <div class="difference-main">
+                            <span id="differenceValue"></span>
+                            <span id="differenceLabel"></span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Contextual suggestion integrated within hero -->
-                <div class="section-header section-header-advice">What to Wear</div>
-                <div class="contextual-suggestion" id="contextualSuggestion"></div>
+                <!-- Right column: What to wear (~2/3) -->
+                <div class="advice-column">
+                    <div class="section-header section-header-advice">What to Wear</div>
+                    <div class="contextual-suggestion" id="contextualSuggestion"></div>
+                </div>
             </div>
 
             <!-- Rain forecast chart -->
