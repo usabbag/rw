@@ -20,6 +20,13 @@ export async function onRequestPost(context) {
         // Get API key from environment variable
         const apiKey = env.OPENROUTER_API_KEY;
 
+        // Debug logging
+        console.log('=== DEBUG INFO ===');
+        console.log('Environment keys available:', Object.keys(env));
+        console.log('API key exists:', !!apiKey);
+        console.log('API key length:', apiKey ? apiKey.length : 0);
+        console.log('API key first 10 chars:', apiKey ? apiKey.substring(0, 10) : 'NONE');
+
         if (!apiKey) {
             return new Response(JSON.stringify({ error: 'API key not configured' }), {
                 status: 500,
@@ -78,12 +85,17 @@ Keep each sentence under 15 words. Be conversational but direct.
 Do NOT include analysis tags or detailed reasoning - just give the actionable advice directly.`;
 
         // Call OpenRouter API with streaming
+        const referer = request.headers.get('origin') || request.headers.get('referer') || 'https://relative-weather.pages.dev';
+        console.log('Making request to OpenRouter...');
+        console.log('Using referer:', referer);
+        console.log('Model:', 'anthropic/claude-haiku-4.5');
+
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
-                'HTTP-Referer': request.headers.get('origin') || 'https://relative-weather.pages.dev',
+                'HTTP-Referer': referer,
                 'X-Title': 'Relative Weather App'
             },
             body: JSON.stringify({
@@ -100,8 +112,20 @@ Do NOT include analysis tags or detailed reasoning - just give the actionable ad
 
         if (!response.ok) {
             const error = await response.text();
-            console.error('OpenRouter API error:', response.status, error);
-            return new Response(JSON.stringify({ error: 'AI service unavailable' }), {
+            console.error('=== OPENROUTER ERROR ===');
+            console.error('Status:', response.status);
+            console.error('Status Text:', response.statusText);
+            console.error('Error body:', error);
+            console.error('Request headers sent:', {
+                'Authorization': 'Bearer ' + (apiKey ? apiKey.substring(0, 10) + '...' : 'NONE'),
+                'HTTP-Referer': request.headers.get('origin') || 'https://relative-weather.pages.dev',
+                'X-Title': 'Relative Weather App'
+            });
+            return new Response(JSON.stringify({
+                error: 'AI service unavailable',
+                details: error,
+                status: response.status
+            }), {
                 status: response.status,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
