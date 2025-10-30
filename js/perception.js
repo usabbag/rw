@@ -49,8 +49,8 @@ function formatWeatherDataForAI(current, yesterday) {
 ${Math.round(current.main.temp - yesterday.main.temp) > 0 ? '+' : ''}${Math.round(current.main.temp - yesterday.main.temp)}°C from yesterday`;
 }
 
-// Call OpenRouter API for AI-generated clothing advice
-async function getAIClothingAdvice(current, yesterday, location) {
+// Call OpenRouter API for AI-generated clothing advice with streaming support
+async function getAIClothingAdvice(current, yesterday, location, onStream) {
     // Check if API key is set
     if (!OPENROUTER_API_KEY) {
         console.log('OpenRouter API key not set, using rule-based suggestions');
@@ -125,7 +125,8 @@ Do NOT include analysis tags or detailed reasoning - just give the actionable ad
                         role: 'user',
                         content: systemPrompt
                     }
-                ]
+                ],
+                stream: true // Enable streaming
             })
         });
 
@@ -134,10 +135,44 @@ Do NOT include analysis tags or detailed reasoning - just give the actionable ad
             return null;
         }
 
-        const data = await response.json();
-        const advice = data.choices?.[0]?.message?.content?.trim();
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
 
-        return advice || null;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+
+                    // Skip [DONE] message
+                    if (data === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(data);
+                        const content = parsed.choices?.[0]?.delta?.content;
+
+                        if (content) {
+                            fullText += content;
+                            // Call streaming callback with accumulated text
+                            if (onStream) {
+                                onStream(fullText);
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore parse errors for comments or incomplete JSON
+                    }
+                }
+            }
+        }
+
+        return fullText || null;
     } catch (error) {
         console.error('Error calling OpenRouter API:', error);
         return null;
@@ -145,10 +180,10 @@ Do NOT include analysis tags or detailed reasoning - just give the actionable ad
 }
 
 // Get contextual suggestion based on weather comparison
-// Now with AI-powered suggestions via OpenRouter API
-export async function getContextualSuggestion(current, yesterday, location) {
-    // Try to get AI-generated advice first
-    const aiAdvice = await getAIClothingAdvice(current, yesterday, location);
+// Now with AI-powered suggestions via OpenRouter API with streaming support
+export async function getContextualSuggestion(current, yesterday, location, onStream) {
+    // Try to get AI-generated advice first with streaming
+    const aiAdvice = await getAIClothingAdvice(current, yesterday, location, onStream);
 
     if (aiAdvice) {
         return aiAdvice;
@@ -158,23 +193,31 @@ export async function getContextualSuggestion(current, yesterday, location) {
     const diff = current.main.temp - yesterday.main.temp;
     const absDiff = Math.abs(diff);
 
+    let fallbackMessage = '';
     if (absDiff === 0) {
-        return 'Dress the same as you did yesterday';
+        fallbackMessage = 'Dress the same as you did yesterday';
     } else if (diff > 0) {
         if (absDiff <= 3) {
-            return 'You can dress slightly lighter than yesterday';
+            fallbackMessage = 'You can dress slightly lighter than yesterday';
         } else if (absDiff <= 7) {
-            return 'Leave the heavy jacket at home today';
+            fallbackMessage = 'Leave the heavy jacket at home today';
         } else {
-            return 'Dress much lighter than yesterday';
+            fallbackMessage = 'Dress much lighter than yesterday';
         }
     } else {
         if (absDiff <= 3) {
-            return 'Bring a light layer just in case';
+            fallbackMessage = 'Bring a light layer just in case';
         } else if (absDiff <= 7) {
-            return 'Dress warmer than you did yesterday';
+            fallbackMessage = 'Dress warmer than you did yesterday';
         } else {
-            return 'Bundle up - it\'s much colder than yesterday';
+            fallbackMessage = 'Bundle up - it\'s much colder than yesterday';
         }
     }
+
+    // Call the stream callback with fallback message
+    if (onStream) {
+        onStream(fallbackMessage);
+    }
+
+    return fallbackMessage;
 }

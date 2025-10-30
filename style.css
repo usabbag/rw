@@ -16,20 +16,24 @@ body {
     color: #1a1a1a;
 }
 
-.container {
-    background: white;
-    border-radius: 16px;
-    padding: 3.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+.page-wrapper {
     max-width: 700px;
     width: 100%;
+}
+
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     border: 1px solid #f0f0f0;
+    margin-bottom: 1.5rem;
 }
 
 /* Header */
 header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
 }
 
 header h1 {
@@ -50,7 +54,6 @@ header p {
 .search-section {
     display: flex;
     gap: 0.75rem;
-    margin: 3rem 0;
 }
 
 .search-input-wrapper {
@@ -65,7 +68,7 @@ header p {
     border-radius: 10px;
     font-size: 0.9375rem;
     transition: all 0.2s ease;
-    background: #fafafa;
+    background: white;
 }
 
 #cityInput:focus {
@@ -163,11 +166,7 @@ header p {
 
 /* City disambiguation */
 .city-disambiguation {
-    margin: 3rem 0;
-    padding: 2rem;
-    background: #fafafa;
-    border-radius: 12px;
-    border: 1px solid #f0f0f0;
+    /* Card styling handled by .card class */
 }
 
 .city-disambiguation h3 {
@@ -216,22 +215,23 @@ header p {
 
 /* Weather display */
 .weather-display {
-    margin: 3rem 0;
+    /* Card styling handled by .card class */
 }
 
 #cityName {
     text-align: center;
-    color: #1a1a1a;
-    font-size: 1.25rem;
-    font-weight: 500;
-    margin-bottom: 3rem;
-    letter-spacing: -0.01em;
+    color: #8b8b8b;
+    font-size: 0.875rem;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 /* Hero: Temperature difference */
 .difference-hero {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .difference-main {
@@ -255,12 +255,6 @@ header p {
     letter-spacing: -0.01em;
 }
 
-.perception-label {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #6b6b6b;
-    letter-spacing: -0.01em;
-}
 
 /* Temperature difference colors */
 .difference-main.warmer #differenceValue,
@@ -281,15 +275,23 @@ header p {
 /* Contextual suggestion */
 .contextual-suggestion {
     text-align: center;
-    padding: 1.25rem 1.5rem;
-    background: #fafafa;
-    border-radius: 12px;
-    border: 1px solid #f0f0f0;
-    color: #1a1a1a;
+    padding: 1rem 1.25rem;
+    background: transparent;
+    border: none;
+    color: #4a4a4a;
     font-size: 0.9375rem;
     font-weight: 400;
-    line-height: 1.5;
-    margin-bottom: 2.5rem;
+    line-height: 1.6;
+    margin-top: 1.25rem;
+    margin-bottom: 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.contextual-suggestion.loading {
+    color: #a0a0a0;
+    font-style: italic;
 }
 
 /* Weather details (secondary) */
@@ -327,9 +329,7 @@ header p {
 
 /* Recent searches */
 .recent-searches {
-    margin-top: 3rem;
-    padding-top: 3rem;
-    border-top: 1px solid #f0f0f0;
+    /* Card styling handled by .card class */
 }
 
 .recent-searches h3 {
@@ -374,13 +374,14 @@ header p {
 .error {
     background: #fff5f5;
     color: #d73a49;
-    padding: 1rem 1.25rem;
-    border-radius: 10px;
+    padding: 1.5rem;
+    border-radius: 16px;
     border: 1px solid #ffd7d7;
-    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
     text-align: center;
     font-size: 0.9375rem;
     font-weight: 400;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Loading animation */
@@ -413,12 +414,12 @@ header p {
         padding: 1rem;
     }
 
-    .container {
+    .card {
         padding: 2rem;
     }
 
     header {
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
 
     header h1 {
@@ -437,13 +438,9 @@ header p {
         font-size: 1.25rem;
     }
 
-    .perception-label {
-        font-size: 0.9375rem;
-    }
-
     .contextual-suggestion {
         font-size: 0.875rem;
-        padding: 1rem 1.25rem;
+        padding: 0.875rem 1rem;
     }
 
     .weather-details {
@@ -453,7 +450,6 @@ header p {
     .search-section {
         flex-direction: column;
         gap: 0.75rem;
-        margin: 2rem 0;
     }
 
     .search-input-wrapper {
@@ -465,28 +461,33 @@ header p {
         width: auto;
     }
 
-    .weather-display {
-        margin: 2rem 0;
-    }
-
     #cityName {
-        margin-bottom: 2rem;
-        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.8125rem;
     }
 }
 
 @media (max-width: 480px) {
-    .container {
+    body {
+        padding: 0.75rem;
+    }
+
+    .card {
         padding: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     header h1 {
         font-size: 1.5rem;
     }
 
-    #cityName {
-        font-size: 1.125rem;
+    header {
         margin-bottom: 2rem;
+    }
+
+    #cityName {
+        font-size: 0.75rem;
+        margin-bottom: 1.5rem;
     }
 
     #differenceValue {
@@ -501,14 +502,9 @@ header p {
         gap: 0.5rem;
     }
 
-    .perception-label {
-        font-size: 0.875rem;
-    }
-
     .contextual-suggestion {
         font-size: 0.8125rem;
-        padding: 0.875rem 1rem;
-        margin-bottom: 2rem;
+        padding: 0.75rem 0.875rem;
     }
 
     .detail-row {

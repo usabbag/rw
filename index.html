@@ -7,27 +7,31 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Relative Weather</h1>
-            <p>How does today feel compared to yesterday?</p>
-        </header>
-        
-        <div class="search-section">
-            <div class="search-input-wrapper">
-                <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off">
-                <div id="citySuggestions" class="city-suggestions hidden"></div>
+    <div class="page-wrapper">
+        <!-- Card 1: Header + Search -->
+        <div class="card">
+            <header>
+                <h1>Relative Weather</h1>
+                <p>How does today feel compared to yesterday?</p>
+            </header>
+
+            <div class="search-section">
+                <div class="search-input-wrapper">
+                    <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off">
+                    <div id="citySuggestions" class="city-suggestions hidden"></div>
+                </div>
+                <button id="searchBtn">Get Weather</button>
+                <button id="locationBtn" title="Use current location">📍</button>
             </div>
-            <button id="searchBtn">Get Weather</button>
-            <button id="locationBtn" title="Use current location">📍</button>
         </div>
-        
-        <div id="cityDisambiguation" class="city-disambiguation hidden">
+
+        <div id="cityDisambiguation" class="city-disambiguation card hidden">
             <h3>Multiple cities found. Please select one:</h3>
             <div id="cityChoices"></div>
         </div>
 
-        <div id="weatherDisplay" class="weather-display hidden">
+        <!-- Card 2: Weather Results -->
+        <div id="weatherDisplay" class="weather-display card hidden">
             <h2 id="cityName"></h2>
 
             <!-- Hero: Temperature difference -->
@@ -36,11 +40,10 @@
                     <span id="differenceValue"></span>
                     <span id="differenceLabel"></span>
                 </div>
-                <div class="perception-label" id="perceptionLabel"></div>
-            </div>
 
-            <!-- Contextual suggestion -->
-            <div class="contextual-suggestion" id="contextualSuggestion"></div>
+                <!-- Contextual suggestion integrated within hero -->
+                <div class="contextual-suggestion" id="contextualSuggestion"></div>
+            </div>
 
             <!-- Details: Today and Yesterday (secondary) -->
             <div class="weather-details">
@@ -48,20 +51,19 @@
                     <span class="detail-label">Today</span>
                     <span class="detail-value" id="todayDetails"></span>
                 </div>
-                <div class="weather-card yesterday">
-                    <h3>Yesterday</h3>
-                    <p class="temperature" id="yesterdayTemp"></p>
-                    <p class="description" id="yesterdayDesc"></p>
-                    <p class="time" id="yesterdayTime"></p>
+                <div class="detail-row">
+                    <span class="detail-label">Yesterday</span>
+                    <span class="detail-value" id="yesterdayDetails"></span>
                 </div>
             </div>
         </div>
         
         <div id="rainForecast" class="rain-container hidden"></div>
-        
+
         <div id="errorMessage" class="error hidden"></div>
-        
-        <div id="recentSearches" class="recent-searches hidden">
+
+        <!-- Card 3: Recent Searches -->
+        <div id="recentSearches" class="recent-searches card hidden">
             <h3>Recent Searches</h3>
             <div id="recentList"></div>
         </div>

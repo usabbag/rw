@@ -1,4 +1,4 @@
-import { getPerceptionLabel, getContextualSuggestion } from './perception.js';
+import { getContextualSuggestion } from './perception.js';
 import { getRecentSearches } from './storage.js';
 
 // DOM elements
@@ -97,18 +97,6 @@ export async function displayWeatherComparison(current, yesterday) {
     differenceLabelEl.textContent = diffLabel;
     differenceValueEl.parentElement.className = `difference-main ${className}`;
 
-    // Update perception label
-    const perceptionLabel = getPerceptionLabel(diff);
-    document.getElementById('perceptionLabel').textContent = perceptionLabel;
-
-    // Show loading state for AI suggestion
-    const suggestionEl = document.getElementById('contextualSuggestion');
-    suggestionEl.textContent = 'Getting personalized advice...';
-
-    // Update contextual suggestion (now with AI)
-    const suggestion = await getContextualSuggestion(current, yesterday, current.name);
-    suggestionEl.textContent = suggestion;
-
     // Update details (secondary information)
     const todayTime = formatTime(Date.now() / 1000, timezone);
     const yesterdayTime = formatTime(yesterday.dt, timezone);
@@ -116,13 +104,34 @@ export async function displayWeatherComparison(current, yesterday) {
     document.getElementById('todayDetails').textContent =
         `${currentTemp}°C · ${current.weather[0].description} · ${todayTime}`;
 
-    // Update yesterday's separate elements
-    document.getElementById('yesterdayTemp').textContent = `${yesterdayTemp}°C`;
-    document.getElementById('yesterdayDesc').textContent = yesterday.weather[0].description;
-    document.getElementById('yesterdayTime').textContent = yesterdayTime;
+    // Update yesterday's details in the same format
+    document.getElementById('yesterdayDetails').textContent =
+        `${yesterdayTemp}°C · ${yesterday.weather[0].description} · ${yesterdayTime}`;
 
-    // Show weather display
+    // Show weather display immediately
     elements.weatherDisplay.classList.remove('hidden');
+
+    // Show loading state for AI suggestion
+    const suggestionEl = document.getElementById('contextualSuggestion');
+    suggestionEl.textContent = 'Getting personalized advice...';
+    suggestionEl.classList.add('loading');
+
+    // Update contextual suggestion (now with AI) - this runs in background
+    getContextualSuggestion(current, yesterday, current.name, (text) => {
+        // Streaming callback - update text as it arrives
+        suggestionEl.textContent = text;
+        suggestionEl.classList.remove('loading');
+    }).then((finalSuggestion) => {
+        // Final suggestion received
+        if (finalSuggestion) {
+            suggestionEl.textContent = finalSuggestion;
+            suggestionEl.classList.remove('loading');
+        }
+    }).catch((error) => {
+        console.error('Error getting suggestion:', error);
+        suggestionEl.textContent = 'Could not load personalized advice';
+        suggestionEl.classList.remove('loading');
+    });
 
     // Hide rain forecast for now (can be re-enabled with Open-Meteo precipitation data)
     const rainContainer = document.getElementById('rainForecast');
