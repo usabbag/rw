@@ -10,3 +10,5 @@ Thumbs.db
 
 # Config (contains API keys)
 config.js
+/docs
+/CLAUDE.md
