@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Relative Weather App** is a vanilla JavaScript web application that compares current weather with yesterday's weather at the same time. It helps users understand relative temperature changes rather than absolute values.
 
+**Design Philosophy**: Inverted information hierarchy - the temperature *difference* is the hero element, with actual temperatures as supporting details. Includes perception labels and contextual suggestions for better user understanding.
+
 **API**: Uses [Open-Meteo](https://open-meteo.com) - a free, open-source weather API with no key required.
 
 ## Architecture
@@ -30,15 +32,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `getWeatherDescription()` converts numeric codes to readable text
 
 3. **Data Storage Strategy**
-   - Uses `localStorage` to persist weather data for quick access
-   - Stores today's weather for future reference
-   - Key pattern: `weather_${city.toLowerCase()}`
+   - Uses `localStorage` for recent searches only
    - Recent searches stored in `recentSearches` key (max 5 cities)
+   - No weather data caching - always fetches live data
 
-4. **Data Source Priority**
-   - **First**: Try Open-Meteo historical API (real data from yesterday)
-   - **Second**: Check localStorage for data from previous searches
-   - **Last resort**: Generate mock data if APIs unavailable
+4. **Data Source**
+   - **Only source**: Open-Meteo historical API (real data from yesterday)
+   - No fallback or mock data - shows error if API unavailable
+
+5. **UX Enhancement Functions**
+   - `getPerceptionLabel(diff)`: Returns human-readable perception ("Noticeably warmer", "Slightly cooler", etc.)
+   - `getContextualSuggestion(diff, currentTemp, currentDesc, yesterdayDesc)`: Provides actionable clothing/activity suggestions
+   - Scaffolded for future AI-generated suggestions via API
 
 ### Key Functions
 
@@ -46,8 +51,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `getCurrentWeather(city)`: Fetches current weather from Forecast API
 - `getYesterdayWeather(city, coordinates)`: Gets real historical data from Archive API
 - `getWeatherDescription(wmoCode)`: Converts WMO codes to readable weather descriptions
-- `displayWeatherComparison()`: Renders side-by-side weather cards with temperature difference
-- `storeWeatherData()` / `getStoredWeather()`: localStorage persistence layer
+- `getPerceptionLabel(diff)`: Returns perception label based on temperature difference magnitude
+- `getContextualSuggestion(...)`: Generates contextual clothing/activity suggestions
+- `displayWeatherComparison()`: Renders inverted-hierarchy display with difference as hero element
 
 ## API Configuration
 
@@ -129,21 +135,41 @@ Function `isFromYesterday()` (line 303) accepts data from 20-36 hours ago. Adjus
 3. **No Rate Limits**: Reasonable use is completely free
 4. **Open Source**: Transparent and community-driven
 
+### UX Redesign (2025)
+
+**Inverted Information Hierarchy** - Focused on what matters most:
+
+1. **Difference as Hero**: Temperature difference is the primary, largest element
+   - Large directional arrow (↑ ↓ →) with difference value
+   - Color-coded: Red for warmer, Blue for cooler, Green for same
+
+2. **Perception Labels**: Human-readable understanding
+   - "Slightly warmer", "Noticeably cooler", "Much warmer", etc.
+   - Based on magnitude thresholds (0-2°C, 2-5°C, 5-10°C, 10+°C)
+
+3. **Contextual Suggestions**: Actionable advice
+   - Clothing recommendations based on temperature change
+   - Scaffolded for future AI-generated suggestions
+   - Currently uses rule-based logic
+
+4. **Secondary Details**: Actual temperatures moved to supporting role
+   - Clean list format at bottom
+   - Shows: temp · weather · time
+
+5. **Autocomplete Search**: Live city suggestions as you type
+   - Debounced API calls (300ms)
+   - Bypasses disambiguation when selecting from suggestions
+
 ### Existing Features
 
 1. **Retry Logic**: Automatic retry with exponential backoff (up to 3 retries)
-   - See `fetchWithRetry()` in script.js:48
+   - See `fetchWithRetry()` in script.js
 
-2. **City Disambiguation**: Select from multiple matching cities
-   - See `showCityDisambiguation()` in script.js:254
+2. **City Disambiguation**: Select from multiple matching cities (when typing manually)
+   - Autocomplete suggestions bypass this step
 
-3. **Timezone Support**: Times in location's timezone
-   - See `formatTime()` in script.js:577
-
-4. **Data Source Transparency**: Color-coded data source indicators
-   - Green: Real historical data from Open-Meteo
-   - Blue: Stored data from previous searches
-   - Orange: Simulated data (only if API unavailable)
+3. **Timezone Support**: Times shown in location's timezone
+   - See `formatTime()` function
 
 ## Notes
 

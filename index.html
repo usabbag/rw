@@ -12,9 +12,12 @@
             <h1>Relative Weather</h1>
             <p>How does today feel compared to yesterday?</p>
         </header>
-        
+
         <div class="search-section">
-            <input type="text" id="cityInput" placeholder="Enter city name...">
+            <div class="search-input-wrapper">
+                <input type="text" id="cityInput" placeholder="Enter city name..." autocomplete="off">
+                <div id="citySuggestions" class="city-suggestions hidden"></div>
+            </div>
             <button id="searchBtn">Get Weather</button>
             <button id="locationBtn" title="Use current location">📍</button>
         </div>
@@ -26,22 +29,28 @@
 
         <div id="weatherDisplay" class="weather-display hidden">
             <h2 id="cityName"></h2>
-            <div id="dataSourceNotice" class="data-source-notice hidden"></div>
-            <div class="weather-comparison">
-                <div class="weather-card today">
-                    <h3>Today</h3>
-                    <p class="temperature" id="currentTemp"></p>
-                    <p class="description" id="currentDesc"></p>
-                    <p class="time" id="currentTime"></p>
+
+            <!-- Hero: Temperature difference -->
+            <div class="difference-hero">
+                <div class="difference-main">
+                    <span id="differenceValue"></span>
+                    <span id="differenceLabel"></span>
                 </div>
-                <div class="comparison-arrow">
-                    <span id="tempDifference"></span>
+                <div class="perception-label" id="perceptionLabel"></div>
+            </div>
+
+            <!-- Contextual suggestion -->
+            <div class="contextual-suggestion" id="contextualSuggestion"></div>
+
+            <!-- Details: Today and Yesterday (secondary) -->
+            <div class="weather-details">
+                <div class="detail-row">
+                    <span class="detail-label">Today</span>
+                    <span class="detail-value" id="todayDetails"></span>
                 </div>
-                <div class="weather-card yesterday">
-                    <h3>Yesterday</h3>
-                    <p class="temperature" id="yesterdayTemp"></p>
-                    <p class="description" id="yesterdayDesc"></p>
-                    <p class="time" id="yesterdayTime"></p>
+                <div class="detail-row">
+                    <span class="detail-label">Yesterday</span>
+                    <span class="detail-value" id="yesterdayDetails"></span>
                 </div>
             </div>
         </div>
@@ -55,6 +64,7 @@
             <div id="recentList"></div>
         </div>
     </div>
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 
