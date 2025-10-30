@@ -66,11 +66,10 @@ Your task is to analyze the weather comparison and provide clothing recommendati
 - Account for the transition between different parts of the day
 - Mention accessories that make a big difference (scarves, hats, etc.)
 
-Provide exactly 3 sentences following this structure:
+Provide exactly 2 sentences following this structure:
 
 Sentence 1: How today compares to yesterday in feel (not numbers).
 Sentence 2: Exactly what to wear (specific items, no explanations).
-Sentence 3: The main mistake to avoid today.
 
 Keep each sentence under 15 words. Be conversational but direct.
 Do NOT include analysis tags or detailed reasoning - just give the actionable advice directly.`;
@@ -705,7 +704,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-iO23ZD/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-q5i40j/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -737,7 +736,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-iO23ZD/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-q5i40j/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

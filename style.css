@@ -228,6 +228,22 @@ header p {
     text-transform: uppercase;
 }
 
+/* Section headers */
+.section-header {
+    text-align: center;
+    color: #8b8b8b;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.section-header-advice {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
 /* Hero: Temperature difference */
 .difference-hero {
     text-align: center;
@@ -527,6 +543,29 @@ header p {
 
 .rain-forecast {
     width: 100%;
+    position: relative;
+}
+
+/* Rain tooltip */
+.rain-tooltip {
+    position: absolute;
+    background: rgba(26, 26, 26, 0.95);
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.2s ease;
+}
+
+.rain-tooltip strong {
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .rain-header {
@@ -584,26 +623,19 @@ header p {
     border-radius: 3px 3px 0 0;
     transition: all 0.2s ease;
     cursor: pointer;
+    user-select: none;
 }
 
-.bar.has-rain {
-    background: linear-gradient(to top, #4a90e2, #74b9ff);
-}
-
-.bar.intensity-light {
-    background: linear-gradient(to top, #74b9ff, #a8d8ff);
-}
-
-.bar.intensity-moderate {
-    background: linear-gradient(to top, #4a90e2, #74b9ff);
-}
-
-.bar.intensity-heavy {
-    background: linear-gradient(to top, #2c6bb3, #4a90e2);
-}
+/* Dynamic background colors are set via inline styles in rainChart.js */
+/* This ensures consistent absolute intensity visualization */
 
 .bar:hover {
-    opacity: 0.8;
+    opacity: 0.85;
+    transform: scaleY(1.08);
+}
+
+.bar:active {
+    opacity: 0.7;
     transform: scaleY(1.05);
 }
 
@@ -663,5 +695,14 @@ header p {
     .rain-summary {
         font-size: 0.875rem;
         margin-bottom: 1rem;
+    }
+
+    .rain-tooltip {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.625rem;
+    }
+
+    .rain-tooltip strong {
+        font-size: 0.8125rem;
     }
 } 
