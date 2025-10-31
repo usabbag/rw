@@ -199,7 +199,7 @@ async function onRequestPost2(context) {
 }
 __name(onRequestPost2, "onRequestPost");
 
-// ../.wrangler/tmp/pages-62tuHl/functionsRoutes-0.5702987920328002.mjs
+// ../.wrangler/tmp/pages-r610zg/functionsRoutes-0.8833859559617613.mjs
 var routes = [
   {
     routePath: "/api/clothing-advice",
@@ -704,7 +704,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-srxqpG/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-ewCQTw/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -736,7 +736,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-srxqpG/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-ewCQTw/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
@@ -834,4 +834,4 @@ export {
   __INTERNAL_WRANGLER_MIDDLEWARE__,
   middleware_loader_entry_default as default
 };
-//# sourceMappingURL=functionsWorker-0.8694553952109603.mjs.map
+//# sourceMappingURL=functionsWorker-0.222347816063463.mjs.map

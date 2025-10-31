@@ -13,10 +13,10 @@ import {
     showError,
     hideError,
     displayWeatherComparison,
-    showCityDisambiguation,
     loadRecentSearches,
     displaySuggestions,
-    hideSuggestions
+    hideSuggestions,
+    displayLocationSuggestion
 } from './ui.js';
 
 // Debounce helper function
@@ -42,13 +42,16 @@ async function handleSearch() {
 // Location-based search
 function handleLocationSearch() {
     if (!navigator.geolocation) {
-        showError('Geolocation is not supported by this browser');
+        showError('Geolocation is not supported by your browser.');
         return;
     }
 
+    console.log('Requesting geolocation...');
     showLoading();
+
     navigator.geolocation.getCurrentPosition(
         async (position) => {
+            console.log('Geolocation success:', position.coords);
             const { latitude, longitude } = position.coords;
             try {
                 const currentWeather = await fetchWeatherByCoords(latitude, longitude);
@@ -69,8 +72,23 @@ function handleLocationSearch() {
             }
         },
         (error) => {
+            console.error('Geolocation error:', error);
+            console.log('Error code:', error.code, 'Error message:', error.message);
+
             hideLoading();
-            showError('Unable to get your location. Please enable location access.');
+
+            // Show error message
+            let errorMessage = 'Unable to get your location. ';
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMessage += 'Please allow location access in your browser settings. Check Safari → Settings for This Website → Location.';
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+                errorMessage += 'Location information is unavailable.';
+            } else if (error.code === error.TIMEOUT) {
+                errorMessage += 'Location request timed out.';
+            } else {
+                errorMessage += 'Please try again.';
+            }
+            showError(errorMessage);
         }
     );
 }
@@ -82,16 +100,6 @@ async function performWeatherSearch(city) {
 
     try {
         const currentWeather = await getCurrentWeather(city);
-
-        // If getCurrentWeather returns disambiguation data, show UI
-        if (currentWeather.needsDisambiguation) {
-            hideLoading();
-            const selectedCity = await showCityDisambiguation(currentWeather.cities);
-            showLoading();
-            await fetchWeatherForSelectedCity(selectedCity, city);
-            return;
-        }
-
         const yesterdayWeather = await getYesterdayWeather(city, currentWeather.coordinates);
 
         await displayWeatherComparison(currentWeather, yesterdayWeather);
@@ -104,7 +112,7 @@ async function performWeatherSearch(city) {
     }
 }
 
-// Fetch weather for selected city from disambiguation
+// Fetch weather for selected city from autocomplete
 async function fetchWeatherForSelectedCity(coordinates, cityName) {
     try {
         const currentWeather = await fetchWeatherForCoordinates(coordinates);
@@ -154,11 +162,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Event listeners
     elements.searchBtn.addEventListener('click', handleSearch);
-    elements.locationBtn.addEventListener('click', handleLocationSearch);
     elements.cityInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             hideSuggestions();
             handleSearch();
+        }
+    });
+
+    // Show location suggestion when input is focused and empty
+    elements.cityInput.addEventListener('focus', (e) => {
+        const query = e.target.value.trim();
+        if (query.length === 0) {
+            displayLocationSuggestion(handleLocationSearch);
         }
     });
 
@@ -168,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = e.target.value.trim();
         if (query.length >= 2) {
             debouncedFetchSuggestions(query);
+        } else if (query.length === 0) {
+            // Show location suggestion when input is cleared
+            displayLocationSuggestion(handleLocationSearch);
         } else {
             hideSuggestions();
         }

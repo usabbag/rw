@@ -7,13 +7,27 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', Arial, sans-serif;
-    background: #fafafa;
+    background: linear-gradient(to bottom, #1a2634 0%, #2d3e50 50%, #3a4e61 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    color: #1a1a1a;
+    color: #ffffff;
+    transition: background 1s ease;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    z-index: -1;
 }
 
 .page-wrapper {
@@ -22,12 +36,38 @@ body {
 }
 
 .card {
-    background: white;
-    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-radius: 24px;
     padding: 2.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f0f0f0;
+    box-shadow:
+        0 8px 32px 0 rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     margin-bottom: 1.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+/* First card (with search) needs higher z-index for autocomplete dropdown */
+.page-wrapper > .card:first-child {
+    z-index: 100;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent);
+    opacity: 0.6;
 }
 
 /* Header */
@@ -37,23 +77,24 @@ header {
 }
 
 header h1 {
-    color: #1a1a1a;
+    color: rgba(255, 255, 255, 0.95);
     font-size: 2rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
     letter-spacing: -0.02em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 header p {
-    color: #6b6b6b;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 1rem;
     font-weight: 400;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Search section */
 .search-section {
     display: flex;
-    gap: 0.75rem;
 }
 
 .search-input-wrapper {
@@ -63,165 +104,178 @@ header p {
 
 #cityInput {
     width: 100%;
-    padding: 0.875rem 1rem;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    font-size: 0.9375rem;
-    transition: all 0.2s ease;
-    background: white;
+    padding: 1.5rem 180px 1.5rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    font-size: 3rem;
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
+        0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 #cityInput:focus {
     outline: none;
-    border-color: #d0d0d0;
-    background: white;
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.02);
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.35);
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 #cityInput::placeholder {
-    color: #a0a0a0;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 300;
 }
 
 /* City autocomplete suggestions */
 .city-suggestions {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + 0.75rem);
     left: 0;
     right: 0;
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    max-height: 280px;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    max-height: 400px;
     overflow-y: auto;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .suggestion-item {
-    padding: 0.875rem 1rem;
+    padding: 1.25rem 1.5rem;
     cursor: pointer;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    transition: background-color 0.15s ease;
+    gap: 0.375rem;
+    transition: all 0.2s ease;
 }
 
 .suggestion-item:first-child {
-    border-radius: 10px 10px 0 0;
+    border-radius: 20px 20px 0 0;
 }
 
 .suggestion-item:last-child {
     border-bottom: none;
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 20px 20px;
 }
 
 .suggestion-item:hover {
-    background-color: #fafafa;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.suggestion-item.location-suggestion {
+    background: rgba(10, 132, 255, 0.15);
+    border-bottom-color: rgba(10, 132, 255, 0.3);
+    justify-content: center;
+}
+
+.suggestion-item.location-suggestion:hover {
+    background-color: rgba(10, 132, 255, 0.25);
+    border-bottom-color: rgba(10, 132, 255, 0.4);
+}
+
+.suggestion-item.location-suggestion:only-child {
+    border-bottom: none;
+    border-radius: 20px;
+}
+
+.suggestion-item.location-suggestion .suggestion-name {
+    text-align: center;
 }
 
 .suggestion-name {
     font-weight: 500;
-    color: #1a1a1a;
-    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.25rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.01em;
 }
 
 .suggestion-location {
-    color: #8b8b8b;
-    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
 }
 
-#searchBtn, #locationBtn {
-    padding: 0.875rem 1.5rem;
+#searchBtn {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 1rem 1.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    z-index: 10;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+
+#searchBtn:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-50%) scale(1.02);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+}
+
+#searchBtn:active {
+    transform: translateY(-50%) scale(0.98);
+}
+
+#searchBtn:disabled {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+    transform: translateY(-50%);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+#locationBtn {
+    padding: 0.875rem 1rem;
     background: #1a1a1a;
     color: white;
     border: none;
     border-radius: 10px;
     cursor: pointer;
     font-weight: 500;
-    font-size: 0.9375rem;
+    font-size: 1.125rem;
     transition: all 0.2s ease;
 }
 
-#searchBtn:hover, #locationBtn:hover {
+#locationBtn:hover {
     background: #2d2d2d;
     transform: translateY(-1px);
 }
 
-#searchBtn:active, #locationBtn:active {
+#locationBtn:active {
     transform: translateY(0);
 }
 
-#searchBtn:disabled {
-    background: #e5e5e5;
-    color: #a0a0a0;
-    cursor: not-allowed;
-    transform: none;
-}
-
-#locationBtn {
-    padding: 0.875rem 1rem;
-    font-size: 1.125rem;
-}
-
-/* City disambiguation */
-.city-disambiguation {
-    /* Card styling handled by .card class */
-}
-
-.city-disambiguation h3 {
-    color: #1a1a1a;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    margin-bottom: 1.25rem;
-    text-align: center;
-}
-
-#cityChoices {
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
-}
-
-.city-choice {
-    padding: 1rem 1.25rem;
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-}
-
-.city-choice:hover {
-    border-color: #d0d0d0;
-    background: white;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.city-choice-name {
-    font-weight: 500;
-    color: #1a1a1a;
-    font-size: 0.9375rem;
-}
-
-.city-choice-details {
-    color: #8b8b8b;
-    font-size: 0.8125rem;
-    margin-top: 0.25rem;
-}
-
-/* City Label - Standalone */
+/* City Label - Standalone (hidden - city name shows in search bar) */
 .city-label {
-    text-align: center;
-    color: #8b8b8b;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 1.5rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    display: none;
 }
 
 /* Weather display */
@@ -256,14 +310,15 @@ header p {
 .current-temp {
     font-size: 1.75rem;
     font-weight: 400;
-    color: #1a1a1a;
+    color: rgba(255, 255, 255, 0.95);
     letter-spacing: -0.02em;
     line-height: 1.1;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .condition-description {
     font-size: 0.8125rem;
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.75);
     font-weight: 400;
     text-transform: capitalize;
 }
@@ -279,7 +334,7 @@ header p {
     align-items: center;
     gap: 0.375rem;
     font-size: 0.8125rem;
-    color: #6b6b6b;
+    color: rgba(255, 255, 255, 0.75);
     white-space: nowrap;
 }
 
@@ -290,12 +345,13 @@ header p {
 /* Section headers */
 .section-header {
     text-align: left;
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.8125rem;
     font-weight: 500;
     margin-bottom: 1rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .section-header-advice {
@@ -315,7 +371,7 @@ header p {
     display: flex;
     flex-direction: column;
     padding-right: 2rem;
-    border-right: 1px solid #f0f0f0;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .temperature-column .section-header {
@@ -364,17 +420,20 @@ header p {
 /* Temperature difference colors */
 .difference-main.warmer #differenceValue,
 .difference-main.warmer #differenceLabel {
-    color: #ff3b30;
+    color: rgba(255, 69, 58, 1);
+    text-shadow: 0 2px 8px rgba(255, 69, 58, 0.3);
 }
 
 .difference-main.colder #differenceValue,
 .difference-main.colder #differenceLabel {
-    color: #007aff;
+    color: rgba(10, 132, 255, 1);
+    text-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
 }
 
 .difference-main.same #differenceValue,
 .difference-main.same #differenceLabel {
-    color: #34c759;
+    color: rgba(52, 199, 89, 1);
+    text-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
 }
 
 /* Contextual suggestion */
@@ -383,7 +442,7 @@ header p {
     padding: 0;
     background: transparent;
     border: none;
-    color: #4a4a4a;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 0.9375rem;
     font-weight: 400;
     line-height: 1.6;
@@ -392,10 +451,11 @@ header p {
     flex: 1;
     display: flex;
     align-items: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .contextual-suggestion.loading {
-    color: #a0a0a0;
+    color: rgba(255, 255, 255, 0.65);
     font-style: italic;
 }
 
@@ -404,7 +464,7 @@ header p {
     margin-top: 2.5rem;
     margin-bottom: 0;
     padding-top: 2.5rem;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .temp-forecast {
@@ -420,11 +480,12 @@ header p {
 }
 
 .temp-chart-title {
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.8125rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .temp-chart-legend {
@@ -437,7 +498,7 @@ header p {
     display: flex;
     align-items: center;
     gap: 0.375rem;
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .legend-line {
@@ -447,7 +508,7 @@ header p {
 }
 
 .legend-line.today {
-    background: #1a1a1a;
+    background: #ffffff;
 }
 
 .legend-line.yesterday {
@@ -465,23 +526,32 @@ header p {
     position: relative;
     height: 180px;
     padding: 1rem;
-    background: #fafafa;
-    border-radius: 10px;
-    border: 1px solid #f0f0f0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.temp-chart-container canvas {
+    display: block;
 }
 
 /* Recent searches */
 .recent-searches {
     /* Card styling handled by .card class */
+    display: none; /* Hidden for now */
 }
 
 .recent-searches h3 {
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.8125rem;
     font-weight: 500;
     margin-bottom: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 #recentList {
@@ -491,22 +561,26 @@ header p {
 }
 
 .recent-city {
-    background: #fafafa;
-    color: #1a1a1a;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.95);
     padding: 0.625rem 1rem;
-    border-radius: 8px;
-    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 400;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .recent-city:hover {
-    background: #1a1a1a;
-    color: white;
-    border-color: #1a1a1a;
+    background: rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* Utility classes */
@@ -515,16 +589,21 @@ header p {
 }
 
 .error {
-    background: #fff5f5;
-    color: #d73a49;
+    background: rgba(139, 0, 0, 0.3);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    color: rgba(255, 255, 255, 0.95);
     padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid #ffd7d7;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 59, 48, 0.4);
     margin-bottom: 1.5rem;
     text-align: center;
     font-size: 0.9375rem;
     font-weight: 400;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow:
+        0 8px 32px rgba(139, 0, 0, 0.3),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Loading animation */
@@ -583,6 +662,8 @@ header p {
         flex: 1;
         border-right: none;
         padding-right: 0;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .advice-column {
@@ -614,24 +695,26 @@ header p {
         padding-top: 2rem;
     }
 
-    .search-section {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
     .search-input-wrapper {
         width: 100%;
     }
 
-    #locationBtn {
-        align-self: flex-start;
-        width: auto;
+    #cityInput {
+        font-size: 2rem;
+        padding: 1.25rem 160px 1.25rem 1.25rem;
     }
 
-    /* City label responsive */
-    .city-label {
-        font-size: 0.8125rem;
-        margin-bottom: 1.25rem;
+    #searchBtn {
+        padding: 0.875rem 1.5rem;
+        font-size: 0.9375rem;
+    }
+
+    .suggestion-name {
+        font-size: 1.125rem;
+    }
+
+    .suggestion-location {
+        font-size: 0.9375rem;
     }
 
     /* Current conditions responsive */
@@ -692,16 +775,39 @@ header p {
         margin-bottom: 2rem;
     }
 
-    /* City label mobile */
-    .city-label {
-        font-size: 0.75rem;
-        margin-bottom: 1rem;
+    #cityInput {
+        font-size: 1.75rem;
+        padding: 1rem 140px 1rem 1rem;
+        border-radius: 14px;
+    }
+
+    #searchBtn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.875rem;
+        border-radius: 10px;
+    }
+
+    .suggestion-item {
+        padding: 1rem 1.25rem;
+    }
+
+    .suggestion-name {
+        font-size: 1rem;
+    }
+
+    .suggestion-location {
+        font-size: 0.875rem;
     }
 
     /* Stack columns on mobile */
     .comparison-container {
         flex-direction: column;
         gap: 1.5rem;
+    }
+
+    .temperature-column {
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     #differenceValue {
@@ -842,22 +948,26 @@ header p {
 
 .rain-header h3 {
     margin: 0;
-    color: #1a1a1a;
+    color: rgba(255, 255, 255, 0.9);
     font-size: 1rem;
     font-weight: 500;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .rain-chance {
-    background: #f0f0f0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 0.375rem 0.75rem;
-    border-radius: 8px;
-    color: #1a1a1a;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.95);
     font-size: 0.875rem;
     font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .rain-summary {
-    color: #6b6b6b;
+    color: rgba(255, 255, 255, 0.8);
     font-size: 0.9375rem;
     margin-bottom: 1.25rem;
     text-align: center;
@@ -869,9 +979,12 @@ header p {
     height: 100px;
     gap: 3px;
     padding: 0.5rem;
-    background: #fafafa;
-    border-radius: 10px;
-    border: 1px solid #f0f0f0;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 .rain-bar {
@@ -913,14 +1026,14 @@ header p {
 .time-label {
     flex: 1;
     font-size: 0.6875rem;
-    color: #8b8b8b;
+    color: rgba(255, 255, 255, 0.65);
     text-align: center;
     white-space: nowrap;
 }
 
 .loading-rain, .no-rain-data {
     text-align: center;
-    color: #6b6b6b;
+    color: rgba(255, 255, 255, 0.7);
     padding: 1.5rem;
     font-style: italic;
     font-size: 0.9375rem;

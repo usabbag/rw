@@ -60,17 +60,18 @@ function drawTempChart(today, yesterday, timezone) {
     const ctx = canvas.getContext('2d');
     const container = canvas.parentElement;
 
-    // Set canvas size
+    // Set canvas size (account for container padding)
     const dpr = window.devicePixelRatio || 1;
-    const rect = container.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    canvas.style.width = rect.width + 'px';
-    canvas.style.height = rect.height + 'px';
+    const computedStyle = getComputedStyle(container);
+    const paddingX = parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
+    const paddingY = parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
+    const width = container.clientWidth - paddingX;
+    const height = container.clientHeight - paddingY;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
     ctx.scale(dpr, dpr);
-
-    const width = rect.width;
-    const height = rect.height;
     const padding = { top: 20, right: 20, bottom: 40, left: 40 };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
@@ -132,7 +133,7 @@ function drawTempChart(today, yesterday, timezone) {
 
     // Draw today's line (solid)
     ctx.setLineDash([]);
-    ctx.strokeStyle = '#1a1a1a';
+    ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     today.temperatures.forEach((temp, i) => {
@@ -147,7 +148,7 @@ function drawTempChart(today, yesterday, timezone) {
     ctx.stroke();
 
     // Draw today's points
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#ffffff';
     today.temperatures.forEach((temp, i) => {
         const x = indexToX(i);
         const y = tempToY(temp);
@@ -161,7 +162,7 @@ function drawTempChart(today, yesterday, timezone) {
     ctx.textAlign = 'center';
 
     // Today's temperature labels
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#ffffff';
     today.temperatures.forEach((temp, i) => {
         if (i % 2 === 0 || i === today.temperatures.length - 1) { // Show every other label
             const x = indexToX(i);

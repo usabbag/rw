@@ -39,9 +39,9 @@ export async function fetchWithRetry(url, options = {}, retries = MAX_RETRIES) {
 }
 
 // Get coordinates from city name using Open-Meteo Geocoding API
-export async function getCityCoordinates(city, allowMultiple = true) {
+export async function getCityCoordinates(city) {
     const response = await fetchWithRetry(
-        `${GEOCODING_URL}?name=${encodeURIComponent(city)}&count=5&language=en&format=json`
+        `${GEOCODING_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
     );
 
     if (!response.ok) {
@@ -54,20 +54,7 @@ export async function getCityCoordinates(city, allowMultiple = true) {
         throw new Error('City not found. Please check the spelling.');
     }
 
-    // If multiple cities found and disambiguation is allowed, return all
-    if (allowMultiple && data.results.length > 1) {
-        return data.results.map(location => ({
-            lat: location.latitude,
-            lon: location.longitude,
-            name: location.name,
-            country: location.country,
-            country_code: location.country_code,
-            state: location.admin1,
-            timezone: location.timezone
-        }));
-    }
-
-    // Return single result
+    // Return first (best match) result
     const location = data.results[0];
     return {
         lat: location.latitude,
@@ -96,20 +83,12 @@ const CURRENT_PARAMS = [
     'dew_point_2m'
 ].join(',');
 
-const DAILY_PARAMS = 'temperature_2m_max,temperature_2m_min';
+const DAILY_PARAMS = 'temperature_2m_max,temperature_2m_min,sunrise,sunset';
 
 // Get current weather data using Open-Meteo Forecast API
 export async function getCurrentWeather(city) {
     // First get coordinates for the city
-    const coordinatesResult = await getCityCoordinates(city);
-
-    // Check if multiple cities were returned
-    if (Array.isArray(coordinatesResult)) {
-        // Return array to trigger disambiguation UI
-        return { needsDisambiguation: true, cities: coordinatesResult, query: city };
-    }
-
-    const coordinates = coordinatesResult;
+    const coordinates = await getCityCoordinates(city);
 
     // Then get weather data using Open-Meteo Forecast API
     const response = await fetchWithRetry(
@@ -154,7 +133,9 @@ export async function getCurrentWeather(city) {
             uv_index: data.current.uv_index,
             dew_point: data.current.dew_point_2m,
             temp_max: data.daily.temperature_2m_max[0],
-            temp_min: data.daily.temperature_2m_min[0]
+            temp_min: data.daily.temperature_2m_min[0],
+            sunrise: data.daily.sunrise[0],
+            sunset: data.daily.sunset[0]
         }
     };
 }
@@ -203,7 +184,9 @@ export async function fetchWeatherForCoordinates(coordinates) {
             uv_index: data.current.uv_index,
             dew_point: data.current.dew_point_2m,
             temp_max: data.daily.temperature_2m_max[0],
-            temp_min: data.daily.temperature_2m_min[0]
+            temp_min: data.daily.temperature_2m_min[0],
+            sunrise: data.daily.sunrise[0],
+            sunset: data.daily.sunset[0]
         }
     };
 }
@@ -249,7 +232,9 @@ export async function fetchWeatherByCoords(lat, lon) {
             uv_index: data.current.uv_index,
             dew_point: data.current.dew_point_2m,
             temp_max: data.daily.temperature_2m_max[0],
-            temp_min: data.daily.temperature_2m_min[0]
+            temp_min: data.daily.temperature_2m_min[0],
+            sunrise: data.daily.sunrise[0],
+            sunset: data.daily.sunset[0]
         }
     };
 }
@@ -258,10 +243,7 @@ export async function fetchWeatherByCoords(lat, lon) {
 export async function getYesterdayWeather(city, coordinates = null) {
     // If no coordinates provided, get them from city name
     if (!coordinates) {
-        coordinates = await getCityCoordinates(city, false);
-        if (Array.isArray(coordinates)) {
-            coordinates = coordinates[0];
-        }
+        coordinates = await getCityCoordinates(city);
     }
 
     // Get yesterday's date in ISO format (YYYY-MM-DD)

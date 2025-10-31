@@ -3,22 +3,18 @@ import { getRecentSearches } from './storage.js';
 import { getRainForecast } from './rain.js';
 import { displayRainChart, showRainLoading, hideRainChart } from './rainChart.js';
 import { displayTempChart, showTempLoading, hideTempChart } from './tempChart.js';
-import { getWeatherEmoji } from './weather.js';
+import { getWeatherEmoji, getWeatherBackground } from './weather.js';
 import { get6HourForecast } from './api.js';
 
 // DOM elements
 export const elements = {
     cityInput: document.getElementById('cityInput'),
     searchBtn: document.getElementById('searchBtn'),
-    locationBtn: document.getElementById('locationBtn'),
     weatherDisplay: document.getElementById('weatherDisplay'),
     currentConditionsCard: document.getElementById('currentConditionsCard'),
-    cityLabel: document.getElementById('cityLabel'),
     errorMessage: document.getElementById('errorMessage'),
     recentSearches: document.getElementById('recentSearches'),
     recentList: document.getElementById('recentList'),
-    cityDisambiguation: document.getElementById('cityDisambiguation'),
-    cityChoices: document.getElementById('cityChoices'),
     citySuggestions: document.getElementById('citySuggestions')
 };
 
@@ -40,7 +36,6 @@ export function showError(message) {
     elements.errorMessage.classList.remove('hidden');
     elements.weatherDisplay.classList.add('hidden');
     elements.currentConditionsCard.classList.add('hidden');
-    elements.cityLabel.classList.add('hidden');
 }
 
 export function hideError() {
@@ -63,16 +58,25 @@ function formatTime(timestamp, timezone = null) {
     return new Date(timestamp * 1000).toLocaleTimeString('en-US', options);
 }
 
+// Update background based on weather
+function updateWeatherBackground(weatherCode) {
+    const gradient = getWeatherBackground(weatherCode);
+    document.body.style.background = gradient;
+}
+
 // Display weather comparison
 export async function displayWeatherComparison(current, yesterday) {
-    // Show and update city label
-    elements.cityLabel.textContent = current.name;
-    elements.cityLabel.classList.remove('hidden');
+    // Show city name in search input
+    elements.cityInput.value = current.name;
 
     // Show and update current conditions card
     elements.currentConditionsCard.classList.remove('hidden');
     const weatherCode = current.weather[0].code;
-    document.getElementById('conditionEmoji').textContent = getWeatherEmoji(weatherCode);
+
+    // Update background based on weather conditions
+    updateWeatherBackground(weatherCode);
+
+    document.getElementById('conditionEmoji').textContent = getWeatherEmoji(weatherCode, current.extended.sunrise, current.extended.sunset);
     document.getElementById('currentTemp').textContent = `${Math.round(current.main.temp)}°C`;
     document.getElementById('conditionDescription').textContent = current.weather[0].description;
     document.getElementById('feelsLike').textContent = `Feels like ${Math.round(current.extended.apparent_temperature)}°C`;
@@ -200,43 +204,6 @@ async function fetchAndDisplayRainForecast(lat, lon, timezone) {
     }
 }
 
-// Show city disambiguation UI
-export function showCityDisambiguation(cities) {
-    hideError();
-    elements.weatherDisplay.classList.add('hidden');
-    elements.currentConditionsCard.classList.add('hidden');
-    elements.cityLabel.classList.add('hidden');
-    elements.cityDisambiguation.classList.remove('hidden');
-
-    elements.cityChoices.innerHTML = '';
-
-    return new Promise((resolve) => {
-        cities.forEach(city => {
-            const choiceDiv = document.createElement('div');
-            choiceDiv.className = 'city-choice';
-
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'city-choice-name';
-            nameDiv.textContent = city.name;
-
-            const detailsDiv = document.createElement('div');
-            detailsDiv.className = 'city-choice-details';
-            const locationParts = [city.state, city.country].filter(Boolean);
-            detailsDiv.textContent = locationParts.join(', ');
-
-            choiceDiv.appendChild(nameDiv);
-            choiceDiv.appendChild(detailsDiv);
-
-            choiceDiv.addEventListener('click', () => {
-                elements.cityDisambiguation.classList.add('hidden');
-                resolve(city);
-            });
-
-            elements.cityChoices.appendChild(choiceDiv);
-        });
-    });
-}
-
 // Load and display recent searches
 export function loadRecentSearches(onCityClick) {
     const recent = getRecentSearches();
@@ -307,4 +274,28 @@ export function displaySuggestions(cities, onCitySelect) {
 export function hideSuggestions() {
     elements.citySuggestions.classList.add('hidden');
     elements.citySuggestions.innerHTML = '';
+}
+
+// Display "Use your current location" option
+export function displayLocationSuggestion(handleLocationSearch) {
+    elements.citySuggestions.innerHTML = '';
+
+    const suggestionDiv = document.createElement('div');
+    suggestionDiv.className = 'suggestion-item location-suggestion';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'suggestion-name';
+    nameSpan.innerHTML = '📍 Use your current location';
+
+    suggestionDiv.appendChild(nameSpan);
+
+    // Attach the handler directly without any wrapper to preserve user gesture
+    suggestionDiv.addEventListener('click', function(e) {
+        console.log('Location suggestion clicked!', e);
+        hideSuggestions();
+        handleLocationSearch.call(this, e);
+    });
+
+    elements.citySuggestions.appendChild(suggestionDiv);
+    elements.citySuggestions.classList.remove('hidden');
 }

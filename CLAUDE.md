@@ -32,7 +32,7 @@ The application is organized into **7 specialized JavaScript modules**:
    - `fetchWithRetry()` - exponential backoff retry logic (3 attempts)
    - `getCurrentWeather()` - fetches current conditions + extended data for AI
    - `getYesterdayWeather()` - fetches historical data from archive API
-   - `getCityCoordinates()` - geocoding with disambiguation support
+   - `getCityCoordinates()` - geocoding (returns best match)
    - `fetchCitySuggestions()` - autocomplete suggestions
    - Extended weather parameters for AI analysis (apparent temp, humidity, wind, UV, etc.)
 
@@ -44,7 +44,6 @@ The application is organized into **7 specialized JavaScript modules**:
    - Element references (`elements` object)
    - Loading states, error handling, suggestions display
    - `displayWeatherComparison()` - main display logic with streaming AI suggestions
-   - `showCityDisambiguation()` - Promise-based city selection UI
    - `formatTime()` - timezone-aware time formatting
    - Rain forecast display integration
 
@@ -189,13 +188,14 @@ buffer = lines.pop() || ''; // Keep last incomplete line
 
 This prevents truncation of Server-Sent Events during streaming.
 
-### City Disambiguation Flow
+### City Search Flow
 
-1. User types city name → `getCurrentWeather()` returns `needsDisambiguation: true`
-2. UI shows city selection → returns Promise that resolves with selected coordinates
-3. Weather fetched for specific coordinates → bypasses disambiguation
+When users type a city name:
+1. **Autocomplete suggestions** appear as they type (debounced 300ms)
+2. **Direct search** uses `getCityCoordinates()` to get the best match
+3. **Autocomplete selection** provides exact coordinates immediately, bypassing geocoding
 
-**Autocomplete bypasses disambiguation**: Selecting from dropdown provides exact coordinates immediately.
+The autocomplete approach is preferred as it allows users to disambiguate cities themselves before searching.
 
 ### Timezone Handling
 
