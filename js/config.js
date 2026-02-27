@@ -7,6 +7,9 @@ export const HISTORICAL_URL = 'https://archive-api.open-meteo.com/v1/archive';
 // OpenRouter API is now handled server-side via Cloudflare Pages Functions
 // No API key needed in client code - it's stored as an environment variable
 
+// Air Quality API
+export const AIR_QUALITY_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+
 // Retry configuration
 export const MAX_RETRIES = 3;
 export const INITIAL_RETRY_DELAY = 1000; // 1 second

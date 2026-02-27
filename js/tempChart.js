@@ -95,7 +95,7 @@ function drawTempChart(today, yesterday, timezone) {
     };
 
     // Draw grid lines
-    ctx.strokeStyle = '#f0f0f0';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
         const y = padding.top + (i / 4) * chartHeight;
@@ -182,7 +182,7 @@ function drawTempChart(today, yesterday, timezone) {
     });
 
     // Draw time labels on X-axis
-    ctx.fillStyle = '#8b8b8b';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif';
     ctx.textAlign = 'center';
     today.times.forEach((time, i) => {
@@ -197,7 +197,7 @@ function drawTempChart(today, yesterday, timezone) {
     });
 
     // Draw Y-axis temperature labels
-    ctx.fillStyle = '#8b8b8b';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.textAlign = 'right';
     for (let i = 0; i <= 4; i++) {
         const temp = (minTemp - tempPadding) + ((maxTemp + tempPadding - minTemp + tempPadding) * (4 - i) / 4);

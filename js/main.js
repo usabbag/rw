@@ -64,7 +64,6 @@ function handleLocationSearch() {
 
                 await displayWeatherComparison(currentWeather, yesterdayWeather);
                 saveRecentSearch(city);
-                elements.cityInput.value = city;
             } catch (error) {
                 showError(error.message);
             } finally {
@@ -93,6 +92,13 @@ function handleLocationSearch() {
     );
 }
 
+// Update URL with city query parameter
+function updateURL(city) {
+    const url = new URL(window.location);
+    url.searchParams.set('city', city);
+    history.replaceState(null, '', url);
+}
+
 // Perform weather search for a city
 async function performWeatherSearch(city) {
     showLoading();
@@ -104,6 +110,7 @@ async function performWeatherSearch(city) {
 
         await displayWeatherComparison(currentWeather, yesterdayWeather);
         saveRecentSearch(city);
+        updateURL(city);
 
     } catch (error) {
         showError(error.message);
@@ -120,6 +127,7 @@ async function fetchWeatherForSelectedCity(coordinates, cityName) {
 
         await displayWeatherComparison(currentWeather, yesterdayWeather);
         saveRecentSearch(cityName);
+        updateURL(cityName);
     } catch (error) {
         showError(error.message);
     } finally {
@@ -159,6 +167,14 @@ async function handleAutocompleteInput(query) {
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     loadRecentSearches(handleSearch);
+
+    // Check for city in URL query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const cityParam = urlParams.get('city');
+    if (cityParam) {
+        elements.cityInput.value = cityParam;
+        performWeatherSearch(cityParam);
+    }
 
     // Event listeners
     elements.searchBtn.addEventListener('click', handleSearch);

@@ -46,7 +46,21 @@ function formatWeatherDataForAI(current, yesterday) {
 - Yesterday's range: ${yesterdayExt.temp_min ? Math.round(yesterdayExt.temp_min) : 'N/A'}°C to ${yesterdayExt.temp_max ? Math.round(yesterdayExt.temp_max) : 'N/A'}°C
 
 ## Temperature Change
-${Math.round(current.main.temp - yesterday.main.temp) > 0 ? '+' : ''}${Math.round(current.main.temp - yesterday.main.temp)}°C from yesterday`;
+${Math.round(current.main.temp - yesterday.main.temp) > 0 ? '+' : ''}${Math.round(current.main.temp - yesterday.main.temp)}°C from yesterday${current.airQuality ? `
+
+## Air Quality
+- US AQI: ${current.airQuality.aqi} (${getAqiLevelLabel(current.airQuality.aqi)})
+- PM2.5: ${current.airQuality.pm25} µg/m³
+- PM10: ${current.airQuality.pm10} µg/m³` : ''}`;
+}
+
+function getAqiLevelLabel(aqi) {
+    if (aqi <= 50) return 'Good';
+    if (aqi <= 100) return 'Moderate';
+    if (aqi <= 150) return 'Unhealthy for Sensitive Groups';
+    if (aqi <= 200) return 'Unhealthy';
+    if (aqi <= 300) return 'Very Unhealthy';
+    return 'Hazardous';
 }
 
 // Call serverless function for AI-generated clothing advice with streaming support

@@ -1,256 +1,144 @@
-// Rain chart visualization module
-import { generateRainSummary, calculateRainChance } from './rain.js';
+// Rain forecast visualization - Timeline Segments (fixed 15-min intervals)
+import { getRainIntensity } from './rain.js';
 
 const RAIN_THRESHOLD = 0.1; // mm/h
 
+// Fixed 15-minute intervals
+const INTERVALS = [
+    { startMin: 0, endMin: 15 },
+    { startMin: 15, endMin: 30 },
+    { startMin: 30, endMin: 45 },
+    { startMin: 45, endMin: 60 }
+];
+
 /**
- * Display rain forecast chart
- * @param {Object} rainData - Rain forecast data from Rainbow.ai
- * @param {string} timezone - Timezone for time display
+ * Analyze a 15-minute window and return its dominant intensity + description
  */
-export function displayRainChart(rainData, timezone = null) {
+function analyzeInterval(forecast, startMin, endMin, prevIntensity) {
+    const slice = forecast.slice(startMin, Math.min(endMin, forecast.length));
+    if (slice.length === 0) return { intensity: 'dry', avgRate: 0, description: 'No data' };
+
+    const rates = slice.map(d => d?.precipRate || 0);
+    const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+    const maxRate = Math.max(...rates);
+    const rainyMinutes = rates.filter(r => r > RAIN_THRESHOLD).length;
+    const intensity = getRainIntensity(avgRate);
+
+    let description;
+    if (rainyMinutes === 0) {
+        if (prevIntensity && prevIntensity !== 'dry') {
+            description = 'Clearing up';
+        } else {
+            description = 'Dry';
+        }
+    } else if (intensity === 'light') {
+        if (!prevIntensity || prevIntensity === 'dry') {
+            description = 'Light rain starting';
+        } else {
+            description = 'Light rain';
+        }
+    } else if (intensity === 'moderate') {
+        description = 'Moderate rain';
+    } else if (intensity === 'heavy') {
+        description = 'Heavy rain';
+    } else {
+        description = 'Dry';
+    }
+
+    return { intensity, avgRate, maxRate, description };
+}
+
+/**
+ * Format minute offset as time range label
+ */
+function formatMinuteRange(startMin, endMin) {
+    if (startMin === 0) {
+        return `Now \u2013 ${endMin}m`;
+    }
+    return `${startMin} \u2013 ${endMin}m`;
+}
+
+/**
+ * Display rain forecast as 4 fixed 15-minute timeline segments
+ */
+export function displayRainSegments(rainData, timezone = null) {
     const container = document.getElementById('rainForecast');
     if (!container) return;
 
     if (!rainData || !rainData.forecast || rainData.forecast.length === 0) {
-        container.innerHTML = '<div class="no-rain-data">No rain data available for this location</div>';
-        container.classList.remove('hidden');
+        container.classList.add('hidden');
         return;
     }
 
-    const forecast = rainData.forecast;
+    const forecast = rainData.forecast.slice(0, 60);
 
-    // Take first 60 minutes
-    const nextHour = forecast.slice(0, 60);
-
-    // Sample every 5 minutes for display (12 bars for 60 minutes)
-    const sampledData = [];
-    for (let i = 0; i < nextHour.length; i += 5) {
-        sampledData.push(nextHour[i]);
+    // Check if any rain at all in the next hour
+    const hasAnyRain = forecast.some(d => (d?.precipRate || 0) > RAIN_THRESHOLD);
+    if (!hasAnyRain) {
+        container.classList.add('hidden');
+        return;
     }
 
-    // Calculate rain chance and summary
-    const rainChance = calculateRainChance(nextHour);
-    const summary = generateRainSummary(nextHour);
+    // Build 4 segments
+    let html = '';
+    let prevIntensity = null;
 
-    // Find max precipitation for height scaling
-    const maxPrecip = Math.max(...sampledData.map(d => d.precipRate || 0), 0.5);
+    INTERVALS.forEach(({ startMin, endMin }) => {
+        const analysis = analyzeInterval(forecast, startMin, endMin, prevIntensity);
+        prevIntensity = analysis.intensity;
 
-    // Calculate min/max precipitation in this hour for relative scaling
-    const precipRates = sampledData.map(d => d.precipRate || 0).filter(r => r > RAIN_THRESHOLD);
-    const minPrecip = precipRates.length > 0 ? Math.min(...precipRates) : 0;
-    const maxPrecipInHour = precipRates.length > 0 ? Math.max(...precipRates) : 0;
-    const precipRange = maxPrecipInHour - minPrecip;
+        const timeLabel = formatMinuteRange(startMin, endMin);
 
-    // Generate chart HTML
-    const chartHTML = `
-        <div class="rain-forecast">
-            <div class="rain-header">
-                <h3>${summary}</h3>
-                <div class="rain-chance">${rainChance}% chance</div>
+        // Bar fill based on average rate
+        let fillWidth = 0;
+        let fillColor = 'transparent';
+        if (analysis.intensity === 'light') {
+            fillWidth = 40;
+            fillColor = '#5B9AE6';
+        } else if (analysis.intensity === 'moderate') {
+            fillWidth = 75;
+            fillColor = '#5B9AE6';
+        } else if (analysis.intensity === 'heavy') {
+            fillWidth = 100;
+            fillColor = '#5B9AE6';
+        }
+
+        const intensityClass = (analysis.intensity === 'moderate' || analysis.intensity === 'heavy') ? analysis.intensity : '';
+
+        html += `
+            <div class="rain-segment">
+                <span class="rain-time">${timeLabel}</span>
+                <div class="rain-intensity-bar">
+                    <div class="rain-intensity-fill" style="width: ${fillWidth}%; background-color: ${fillColor};"></div>
+                </div>
+                <span class="rain-description ${intensityClass}">${analysis.description}</span>
             </div>
+        `;
+    });
 
-            <div class="rain-tooltip hidden" id="rainTooltip"></div>
-
-            <div class="rain-chart">
-                ${sampledData.map((data, index) => {
-                    const precipRate = data.precipRate || 0;
-                    const hasRain = precipRate > RAIN_THRESHOLD;
-                    const heightPercent = maxPrecip > 0 ? (precipRate / maxPrecip) * 100 : 0;
-
-                    // Use a hybrid approach for color intensity:
-                    // 1. Apply square root scaling to amplify differences at lower values
-                    // 2. Combine with relative intensity within the hour
-                    let intensity = 0;
-                    if (hasRain) {
-                        // Square root scaling makes small differences more visible
-                        // E.g., 0.1mm -> 0.316, 0.5mm -> 0.707, 1mm -> 1.0, 4mm -> 2.0
-                        const sqrtScaled = Math.sqrt(precipRate);
-
-                        // Normalize to 0-1 range with increased sensitivity for light rain
-                        // Use 4mm as the max for square root scale (sqrt(4) = 2)
-                        const absoluteIntensity = Math.min(sqrtScaled / 2, 1);
-
-                        // Calculate relative position within this hour's range
-                        let relativeIntensity = 0;
-                        if (precipRange > 0.1) {
-                            relativeIntensity = (precipRate - minPrecip) / precipRange;
-                        }
-
-                        // Blend absolute (60%) and relative (40%) intensity
-                        // This ensures variation is visible even in consistent light rain
-                        intensity = (absoluteIntensity * 0.6) + (relativeIntensity * 0.4);
-
-                        // Ensure minimum intensity of 0.25 for any rain to make it clearly visible
-                        intensity = Math.max(intensity, 0.25);
-                    }
-
-                    // Generate gradient colors with expanded range
-                    // Very light blue (180, 225, 255) for light rain -> Deep blue (25, 80, 150) for heavy rain
-                    const lightColor = { r: 180, g: 225, b: 255 };
-                    const darkColor = { r: 25, g: 80, b: 150 };
-
-                    const r = Math.round(lightColor.r + (darkColor.r - lightColor.r) * intensity);
-                    const g = Math.round(lightColor.g + (darkColor.g - lightColor.g) * intensity);
-                    const b = Math.round(lightColor.b + (darkColor.b - lightColor.b) * intensity);
-
-                    const gradientColor = `linear-gradient(to top, rgb(${r}, ${g}, ${b}), rgb(${Math.min(r + 20, 255)}, ${Math.min(g + 20, 255)}, ${Math.min(b + 20, 255)}))`;
-                    const noRainColor = '#e5e5e5';
-
-                    // Format time
-                    const timestamp = data.timestampBegin;
-                    const time = formatTimeForChart(timestamp, timezone);
-
-                    return `
-                        <div class="rain-bar">
-                            <div
-                                class="bar ${hasRain ? 'has-rain' : ''}"
-                                style="height: ${Math.max(heightPercent, 2)}%; background: ${hasRain ? gradientColor : noRainColor};"
-                                data-precip="${precipRate.toFixed(1)}"
-                                data-time="${time}"
-                            ></div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-
-            <div class="rain-time-labels">
-                ${sampledData.map((data, index) => {
-                    const timestamp = data.timestampBegin;
-                    const time = formatTimeForChart(timestamp, timezone);
-                    const showTime = index % 3 === 0;
-
-                    return `<div class="time-label">${showTime ? time : ''}</div>`;
-                }).join('')}
-            </div>
-        </div>
-    `;
-
-    container.innerHTML = chartHTML;
+    container.innerHTML = html;
     container.classList.remove('hidden');
-
-    // Add tooltip event listeners
-    attachTooltipListeners();
 }
 
-/**
- * Attach tooltip event listeners to rain bars
- */
-function attachTooltipListeners() {
-    const tooltip = document.getElementById('rainTooltip');
-    const bars = document.querySelectorAll('.rain-bar .bar');
-
-    if (!tooltip || !bars.length) return;
-
-    bars.forEach(bar => {
-        // Desktop: hover
-        bar.addEventListener('mouseenter', (e) => {
-            showTooltip(e.target, tooltip);
-        });
-
-        bar.addEventListener('mouseleave', () => {
-            hideTooltip(tooltip);
-        });
-
-        // Mobile: tap
-        bar.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showTooltip(e.target, tooltip);
-        });
-    });
-
-    // Hide tooltip when clicking outside
-    document.addEventListener('click', () => {
-        hideTooltip(tooltip);
-    });
-}
+// Alias for backward compatibility
+export const displayRainChart = displayRainSegments;
 
 /**
- * Show tooltip with precipitation data
- */
-function showTooltip(bar, tooltip) {
-    const precip = bar.getAttribute('data-precip');
-    const time = bar.getAttribute('data-time');
-
-    if (!precip || !time) return;
-
-    // Format display text
-    const precipValue = parseFloat(precip);
-    let displayText;
-    if (precipValue === 0) {
-        displayText = `${time}<br><strong>No rain</strong>`;
-    } else {
-        displayText = `${time}<br><strong>${precip} mm/h</strong>`;
-    }
-
-    tooltip.innerHTML = displayText;
-    tooltip.classList.remove('hidden');
-
-    // Position tooltip above the bar
-    const barRect = bar.getBoundingClientRect();
-    const tooltipRect = tooltip.getBoundingClientRect();
-    const chartContainer = bar.closest('.rain-forecast');
-    const chartRect = chartContainer.getBoundingClientRect();
-
-    // Calculate position relative to chart container
-    const left = barRect.left - chartRect.left + (barRect.width / 2) - (tooltipRect.width / 2);
-    const top = barRect.top - chartRect.top - tooltipRect.height - 8;
-
-    tooltip.style.left = `${Math.max(10, Math.min(left, chartRect.width - tooltipRect.width - 10))}px`;
-    tooltip.style.top = `${Math.max(10, top)}px`;
-}
-
-/**
- * Hide tooltip
- */
-function hideTooltip(tooltip) {
-    if (tooltip) {
-        tooltip.classList.add('hidden');
-    }
-}
-
-/**
- * Show loading state for rain chart
+ * Show loading state
  */
 export function showRainLoading() {
     const container = document.getElementById('rainForecast');
     if (!container) return;
-
     container.innerHTML = '<div class="loading-rain">Loading rain forecast...</div>';
     container.classList.remove('hidden');
 }
 
 /**
- * Hide rain chart
+ * Hide rain forecast
  */
 export function hideRainChart() {
     const container = document.getElementById('rainForecast');
     if (!container) return;
-
     container.classList.add('hidden');
     container.innerHTML = '';
-}
-
-/**
- * Format timestamp for chart display
- * @param {number} timestamp - Unix timestamp
- * @param {string} timezone - Timezone string
- * @returns {string} Formatted time (e.g., "2:30 PM")
- */
-function formatTimeForChart(timestamp, timezone = null) {
-    const options = {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    };
-
-    if (timezone) {
-        options.timeZone = timezone;
-    }
-
-    const date = new Date(timestamp * 1000);
-    const formatted = date.toLocaleTimeString('en-US', options);
-
-    // Shorten format (remove space, lowercase am/pm)
-    return formatted.replace(' ', '').toLowerCase();
 }
