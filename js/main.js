@@ -168,13 +168,12 @@ async function handleAutocompleteInput(query) {
 document.addEventListener('DOMContentLoaded', () => {
     loadRecentSearches(handleSearch);
 
-    // Check for city in URL query params
+    // Check for city in URL query params, default to Paris
     const urlParams = new URLSearchParams(window.location.search);
     const cityParam = urlParams.get('city');
-    if (cityParam) {
-        elements.cityInput.value = cityParam;
-        performWeatherSearch(cityParam);
-    }
+    const defaultCity = cityParam || 'Paris';
+    elements.cityInput.value = defaultCity;
+    performWeatherSearch(defaultCity);
 
     // Event listeners
     elements.searchBtn.addEventListener('click', handleSearch);
