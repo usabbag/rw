@@ -75,12 +75,9 @@ Your task is to analyze the weather comparison and provide clothing recommendati
 - Account for the transition between different parts of the day
 - Mention accessories that make a big difference (scarves, hats, etc.)
 
-Provide exactly 2 sentences following this structure:
+Provide exactly 1 sentence: a practical clothing suggestion comparing today to yesterday.
 
-Sentence 1: How today compares to yesterday in feel (not numbers).
-Sentence 2: Explain why and suggest a clothing change.
-
-Keep each sentence under 15 words. Be conversational but direct.
+Keep it under 15 words. Be conversational but direct.
 Do NOT include analysis tags or detailed reasoning - just give the actionable advice directly.`;
 
         // Call OpenRouter API with streaming

@@ -2,6 +2,7 @@
 import { getRainIntensity } from './rain.js';
 
 const RAIN_THRESHOLD = 0.1; // mm/h
+const PRECIP_PROB_THRESHOLD = 30; // % probability to consider "rain expected"
 
 // Fixed 15-minute intervals
 const INTERVALS = [
@@ -65,17 +66,28 @@ export function displayRainSegments(rainData, timezone = null) {
     const container = document.getElementById('rainForecast');
     if (!container) return;
 
-    if (!rainData || !rainData.forecast || rainData.forecast.length === 0) {
-        container.classList.add('hidden');
-        return;
-    }
+    const forecast = rainData?.forecast?.slice(0, 60) || [];
+    const hasAnyRain = forecast.length > 0 && forecast.some(d => (d?.precipRate || 0) > RAIN_THRESHOLD);
 
-    const forecast = rainData.forecast.slice(0, 60);
-
-    // Check if any rain at all in the next hour
-    const hasAnyRain = forecast.some(d => (d?.precipRate || 0) > RAIN_THRESHOLD);
     if (!hasAnyRain) {
-        container.classList.add('hidden');
+        // Show empty state with dry segments, preserving daily summary
+        const existingSummary = container.querySelector('.rain-daily-summary');
+        let html = '';
+        INTERVALS.forEach(({ startMin, endMin }) => {
+            const timeLabel = formatMinuteRange(startMin, endMin);
+            html += `
+            <div class="rain-segment">
+                <span class="rain-time">${timeLabel}</span>
+                <div class="rain-intensity-bar">
+                    <div class="rain-intensity-fill" style="width: 0%; background-color: transparent;"></div>
+                </div>
+                <span class="rain-description">Dry</span>
+            </div>
+            `;
+        });
+        container.innerHTML = html;
+        if (existingSummary) container.prepend(existingSummary);
+        container.classList.remove('hidden');
         return;
     }
 
@@ -116,12 +128,67 @@ export function displayRainSegments(rainData, timezone = null) {
         `;
     });
 
+    const existingSummary = container.querySelector('.rain-daily-summary');
     container.innerHTML = html;
+    if (existingSummary) container.prepend(existingSummary);
     container.classList.remove('hidden');
 }
 
 // Alias for backward compatibility
 export const displayRainChart = displayRainSegments;
+
+/**
+ * Generate "Rain expected at [TIME]" summary from Open-Meteo hourly data
+ * @param {Object} hourlyRain - { times, precipitation, probability }
+ * @param {string} timezone - IANA timezone
+ * @returns {string|null} Summary sentence or null if no rain expected
+ */
+export function getDailyRainSummary(hourlyRain, timezone) {
+    if (!hourlyRain || !hourlyRain.times) return null;
+
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // Find the first future hour with significant precipitation probability
+    for (let i = 0; i < hourlyRain.times.length; i++) {
+        const hour = new Date(hourlyRain.times[i]).getHours();
+        if (hour <= currentHour) continue;
+
+        const prob = hourlyRain.probability?.[i] || 0;
+        const precip = hourlyRain.precipitation?.[i] || 0;
+
+        if (prob >= PRECIP_PROB_THRESHOLD || precip > RAIN_THRESHOLD) {
+            const time = new Date(hourlyRain.times[i]);
+            const timeStr = time.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                hour12: true,
+                ...(timezone ? { timeZone: timezone } : {})
+            });
+            return `Rain expected at ${timeStr}`;
+        }
+    }
+
+    return 'No rain expected today';
+}
+
+/**
+ * Display the daily rain summary line
+ */
+export function displayDailyRainSummary(summary) {
+    const container = document.getElementById('rainForecast');
+    if (!container) return;
+
+    const existing = container.querySelector('.rain-daily-summary');
+    if (existing) existing.remove();
+
+    if (summary) {
+        const el = document.createElement('div');
+        el.className = 'rain-daily-summary';
+        el.textContent = summary;
+        container.prepend(el);
+        container.classList.remove('hidden');
+    }
+}
 
 /**
  * Show loading state

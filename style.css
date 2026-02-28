@@ -8,13 +8,17 @@
 /* Design Tokens */
 :root {
     --bg: #141210;
-    --text-primary: #F0EDE8;
-    --text-muted: #6B6560;
-    --accent-warm: #D4613A;
-    --accent-cool: #5B9AE6;
-    --accent-green: #6BA87A;
-    --font-display: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
-    --font-body: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+    --text-primary: #f0ede8;
+    --text-muted: #6b6560;
+    --accent-warm: #d4613a;
+    --accent-cool: #5b9ae6;
+    --accent-green: #6ba87a;
+    --font-display:
+        "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana,
+        sans-serif;
+    --font-body:
+        "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana,
+        sans-serif;
 }
 
 body {
@@ -96,6 +100,13 @@ body {
     display: none;
 }
 
+.branding-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
 .branding {
     font-family: var(--font-body);
     font-size: 13px;
@@ -106,13 +117,38 @@ body {
     color: var(--text-muted);
 }
 
+.made-by {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.made-by-link {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+
+.made-by-link:hover {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+/* Mobile Footer */
+.mobile-footer {
+    display: none;
+}
+
 /* City Suggestions */
 .city-suggestions {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
     right: -100px;
-    background: #1E1C1A;
+    background: #1e1c1a;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     max-height: 360px;
@@ -177,11 +213,23 @@ body {
 .main-content {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 32px;
+    align-items: center;
     padding: 48px 0;
+}
+
+/* Three Column Layout */
+.three-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 48px;
+    width: 100%;
+    align-items: start;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 /* Temperature Difference Hero */
@@ -193,7 +241,7 @@ body {
 
 .difference-value {
     font-family: var(--font-display);
-    font-size: 144px;
+    font-size: 96px;
     font-weight: 700;
     letter-spacing: -0.05em;
     line-height: 1;
@@ -366,7 +414,6 @@ body {
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 440px;
 }
 
 .rain-segment {
@@ -374,7 +421,7 @@ body {
     align-items: center;
     gap: 16px;
     padding: 14px 0;
-    border-bottom: 1px solid #1E1C18;
+    border-bottom: 1px solid #1e1c18;
 }
 
 .rain-segment:last-child {
@@ -423,6 +470,15 @@ body {
     font-weight: 500;
 }
 
+.rain-daily-summary {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent-cool);
+    padding: 14px 0;
+    border-bottom: 1px solid #1e1c18;
+}
+
 /* AI Advice */
 .advice {
     font-family: var(--font-body);
@@ -430,7 +486,6 @@ body {
     font-weight: 400;
     line-height: 1.5;
     color: var(--text-muted);
-    max-width: 440px;
 }
 
 /* Error */
@@ -473,13 +528,24 @@ body {
 }
 
 /* Mobile responsiveness */
+@media (max-width: 960px) {
+    .three-col {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .difference-value {
+        font-size: 80px;
+    }
+}
+
 @media (max-width: 768px) {
     .page-container {
         padding: 0 32px;
     }
 
     .difference-value {
-        font-size: 80px;
+        font-size: 72px;
     }
 
     .difference-label {
@@ -498,12 +564,17 @@ body {
         font-size: 20px;
     }
 
-    .branding {
+    .branding-wrapper {
         display: none;
     }
 
-    .rain-segments {
-        max-width: 100%;
+    .mobile-footer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 24px 0;
+        flex-shrink: 0;
     }
 }
 

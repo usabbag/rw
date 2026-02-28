@@ -334,6 +334,24 @@ export async function fetchCitySuggestions(query) {
     return data.results;
 }
 
+// Get today's hourly precipitation forecast from Open-Meteo
+export async function getTodayRainForecast(lat, lon, timezone = 'auto') {
+    const response = await fetchWithRetry(
+        `${FORECAST_URL}?latitude=${lat}&longitude=${lon}&hourly=precipitation,precipitation_probability&timezone=${encodeURIComponent(timezone)}&forecast_days=1`
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data.hourly) return null;
+
+    return {
+        times: data.hourly.time,
+        precipitation: data.hourly.precipitation,
+        probability: data.hourly.precipitation_probability
+    };
+}
+
 // Get 6-hour temperature forecast (today and yesterday)
 export async function get6HourForecast(coordinates) {
     const timezone = coordinates.timezone || 'auto';

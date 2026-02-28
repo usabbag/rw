@@ -21,65 +21,79 @@
                 </div>
                 <span id="cityLabel" class="city-name"></span>
             </div>
-            <span class="branding">Relative Weather</span>
+            <div class="branding-wrapper">
+                <span class="branding">Relative Weather</span>
+                <span class="made-by">Made by <a href="https://harsaco.com" class="made-by-link" target="_blank" rel="noopener">Harsa</a></span>
+            </div>
         </div>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Temperature Difference Hero -->
-            <div id="weatherDisplay" class="weather-hero hidden">
-                <div class="difference-value" id="differenceValue"></div>
-                <div class="difference-label" id="differenceLabel"></div>
+            <div class="three-col">
+                <!-- Column 1: Relative Temperature -->
+                <div class="col col-relative">
+                    <div id="weatherDisplay" class="weather-hero hidden">
+                        <div class="difference-value" id="differenceValue"></div>
+                        <div class="difference-label" id="differenceLabel"></div>
+                    </div>
+                    <div id="contextualSuggestion" class="advice hidden"></div>
+                </div>
+
+                <!-- Column 2: Current Conditions + AQI -->
+                <div class="col col-conditions">
+                    <div id="currentConditionsCard" class="current-conditions hidden">
+                        <div class="current-temp-row">
+                            <span class="current-temp" id="currentTemp"></span>
+                            <span class="condition-description" id="conditionDescription"></span>
+                        </div>
+                        <div class="details-row">
+                            <div class="detail-item">
+                                <span class="detail-label">Feels like</span>
+                                <span class="detail-value" id="feelsLike"></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Humidity</span>
+                                <span class="detail-value" id="humidity"></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Wind</span>
+                                <span class="detail-value" id="windSpeed"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="airQualityCard" class="air-quality hidden">
+                        <div class="aqi-info">
+                            <span class="aqi-header">Air quality</span>
+                            <div class="aqi-value-row">
+                                <span class="aqi-value" id="aqiValue"></span>
+                                <span class="aqi-label" id="aqiLabel"></span>
+                            </div>
+                        </div>
+                        <div class="aqi-bar-wrapper">
+                            <div class="aqi-bar-track">
+                                <div class="aqi-bar-fill" id="aqiBarFill"></div>
+                            </div>
+                            <div class="aqi-pm-values">
+                                <span class="aqi-pm">PM2.5: <span id="aqiPm25"></span></span>
+                                <span class="aqi-pm">PM10: <span id="aqiPm10"></span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 3: Rain -->
+                <div class="col col-rain">
+                    <div id="rainForecast" class="rain-segments hidden"></div>
+                </div>
             </div>
-
-            <!-- Current Conditions -->
-            <div id="currentConditionsCard" class="current-conditions hidden">
-                <div class="current-temp-row">
-                    <span class="current-temp" id="currentTemp"></span>
-                    <span class="condition-description" id="conditionDescription"></span>
-                </div>
-                <div class="details-row">
-                    <div class="detail-item">
-                        <span class="detail-label">Feels like</span>
-                        <span class="detail-value" id="feelsLike"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Humidity</span>
-                        <span class="detail-value" id="humidity"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Wind</span>
-                        <span class="detail-value" id="windSpeed"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Air Quality -->
-            <div id="airQualityCard" class="air-quality hidden">
-                <div class="aqi-info">
-                    <span class="aqi-header">Air quality</span>
-                    <div class="aqi-value-row">
-                        <span class="aqi-value" id="aqiValue"></span>
-                        <span class="aqi-label" id="aqiLabel"></span>
-                    </div>
-                </div>
-                <div class="aqi-bar-wrapper">
-                    <div class="aqi-bar-track">
-                        <div class="aqi-bar-fill" id="aqiBarFill"></div>
-                    </div>
-                    <div class="aqi-pm-values">
-                        <span class="aqi-pm">PM2.5: <span id="aqiPm25"></span></span>
-                        <span class="aqi-pm">PM10: <span id="aqiPm10"></span></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rain Forecast Segments -->
-            <div id="rainForecast" class="rain-segments hidden"></div>
-
-            <!-- AI Advice (hidden, runs in background) -->
-            <div id="contextualSuggestion" class="advice hidden"></div>
         </main>
+
+        <!-- Footer (visible on mobile only) -->
+        <footer class="mobile-footer">
+            <span class="branding">Relative Weather</span>
+            <span class="made-by">Made by <a href="https://harsaco.com" class="made-by-link" target="_blank" rel="noopener">Harsa</a></span>
+        </footer>
     </div>
 
     <!-- Hidden elements -->

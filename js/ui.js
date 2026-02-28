@@ -1,7 +1,8 @@
 import { getContextualSuggestion } from './perception.js';
 import { getRecentSearches } from './storage.js';
 import { getRainForecast } from './rain.js';
-import { displayRainSegments, showRainLoading, hideRainChart } from './rainChart.js';
+import { displayRainSegments, showRainLoading, hideRainChart, getDailyRainSummary, displayDailyRainSummary } from './rainChart.js';
+import { getTodayRainForecast } from './api.js';
 // Weather emoji not used in current dark design, but kept available
 // import { getWeatherEmoji } from './weather.js';
 import { getAirQuality, getAqiLevel } from './airQuality.js';
@@ -161,8 +162,9 @@ export async function displayWeatherComparison(current, yesterday) {
         console.error('Error getting suggestion:', error);
     });
 
-    // Fetch rain forecast
+    // Fetch rain forecast (nowcast + daily)
     fetchAndDisplayRainForecast(current.coord.lat, current.coord.lon, timezone);
+    fetchAndDisplayDailyRain(current.coord.lat, current.coord.lon, timezone);
 }
 
 // Fetch and display rain forecast
@@ -170,14 +172,22 @@ async function fetchAndDisplayRainForecast(lat, lon, timezone) {
     try {
         showRainLoading();
         const rainData = await getRainForecast(lat, lon);
-        if (rainData && rainData.forecast && rainData.forecast.length > 0) {
-            displayRainSegments(rainData, timezone);
-        } else {
-            hideRainChart();
-        }
+        displayRainSegments(rainData, timezone);
     } catch (error) {
         console.error('Error fetching rain forecast:', error);
-        hideRainChart();
+        // Show empty segments on error instead of hiding
+        displayRainSegments(null, timezone);
+    }
+}
+
+// Fetch and display daily rain summary from Open-Meteo
+async function fetchAndDisplayDailyRain(lat, lon, timezone) {
+    try {
+        const hourlyRain = await getTodayRainForecast(lat, lon, timezone);
+        const summary = getDailyRainSummary(hourlyRain, timezone);
+        displayDailyRainSummary(summary);
+    } catch (error) {
+        console.error('Error fetching daily rain forecast:', error);
     }
 }
 
